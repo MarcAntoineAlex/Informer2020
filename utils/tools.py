@@ -1,5 +1,18 @@
 import numpy as np
 import torch
+import torch.distributed as dist
+import os
+import time
+import socket
+import logging
+import shutil
+import warnings
+import torch
+import torchvision
+import torchvision.datasets as dset
+import torch.backends.cudnn as cudnn
+import argparse
+from utils.config import MInformerConfig
 
 def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
@@ -71,3 +84,110 @@ class StandardScaler():
         mean = torch.from_numpy(self.mean).type_as(data).to(data.device) if torch.is_tensor(data) else self.mean
         std = torch.from_numpy(self.std).type_as(data).to(data.device) if torch.is_tensor(data) else self.std
         return (data * std) + mean
+
+
+def broadcast_coalesced(src, tensors):
+    list_tensors = [i for i in tensors]
+    shapes = [i.shape for i in list_tensors]
+    for i in range(len(list_tensors)):
+        list_tensors[i] = list_tensors[i].flatten()
+
+    sizes = [t.numel() for t in list_tensors]
+    data = torch.cat(list_tensors)
+
+    dist.broadcast(data, src)
+    cur = 0
+    for step, (shape, size) in enumerate(zip(shapes, sizes)):
+        list_tensors[step] = data[cur:cur+size].reshape(shape)
+        cur += size
+    return list_tensors
+
+
+def all_reduce_coalesced(tensors, im_group=None):
+    list_tensors = [i for i in tensors]
+    shapes = [i.shape for i in list_tensors]
+    for i in range(len(list_tensors)):
+        list_tensors[i] = list_tensors[i].flatten()
+
+    sizes = [t.numel() for t in list_tensors]
+    try:
+        data = torch.cat(list_tensors)
+    except RuntimeError:
+        print(list_tensors, type(list_tensors))
+        exit()
+    if im_group is None:
+        dist.all_reduce(data)
+    else:
+        dist.all_reduce(data, group=im_group)
+    cur = 0
+    for step, (shape, size) in enumerate(zip(shapes, sizes)):
+        list_tensors[step] = data[cur:cur+size].reshape(shape)
+        cur += size
+    return list_tensors
+
+def find_free_port():
+    # import socket
+    s = socket.socket()
+    s.bind(('', 0))            # Bind to a free port provided by the host.
+    return s.getsockname()[1]  # Return the port number assigned.
+
+def setup():
+    # init config
+    config = MInformerConfig()
+
+    config.use_gpu = True if torch.cuda.is_available() and config.use_gpu else False
+
+    # For slurm available
+    if "SLURM_NPROCS" in os.environ:
+        # acquire world size from slurm
+        config.world_size = int(os.environ["SLURM_NPROCS"])
+        config.rank = int(os.environ["SLURM_PROCID"])
+        jobid = os.environ["SLURM_JOBID"]
+        hostfile = os.path.join(config.dist_path, "dist_url." + jobid + ".txt")
+        if config.dist_file is not None:
+            config.dist_url = "file://{}.{}".format(os.path.realpath(config.dist_file), jobid)
+        elif config.rank == 0:
+            if config.dist_backend == 'nccl' and config.infi_band:
+                # only NCCL backend supports inifiniband
+                interface_str = 'ib{:d}'.format(config.infi_band_interface)
+                print("Use infiniband support on interface " + interface_str + '.')
+                os.environ['NCCL_SOCKET_IFNAME'] = interface_str
+                os.environ['GLOO_SOCKET_IFNAME'] = interface_str
+                ip_str = os.popen('ip addr show ' + interface_str).read()
+                ip = ip_str.split("inet ")[1].split("/")[0]
+            else:
+                if config.world_size == 1:  # use only one node
+                    ip = '127.0.0.1'
+                else:
+                    ip = socket.gethostbyname(socket.gethostname())
+            port = find_free_port()
+            config.dist_url = "tcp://{}:{}".format(ip, port)
+            with open(hostfile, "w") as f:
+                f.write(config.dist_url)
+        else:
+            while not os.path.exists(hostfile):
+                time.sleep(5)  # wait for the main process
+            with open(hostfile, "r") as f:
+                config.dist_url = f.read()
+        os.environ["MASTER_ADDR"] = str(config.dist_url.lstrip("tcp://").split(":")[0])
+        os.environ["MASTER_PORT"] = str(config.dist_url.lstrip("tcp://").split(":")[1])
+        print("dist-url:{} at PROCID {} / {}".format(config.dist_url, config.rank, config.world_size))
+        return config
+
+
+def get_logger(file_path):
+    """ Make python logger """
+    # [!] Since tensorboardX use default logger (e.g. logging.info()), we should use custom logger
+    logger = logging.getLogger('darts')
+    log_format = '%(asctime)s | %(message)s'
+    formatter = logging.Formatter(log_format, datefmt='%m/%d %I:%M:%S %p')
+    file_handler = logging.FileHandler(file_path)
+    file_handler.setFormatter(formatter)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    logger.setLevel(logging.INFO)
+
+    return logger

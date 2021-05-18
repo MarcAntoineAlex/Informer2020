@@ -156,3 +156,5 @@ class InformerStack(nn.Module):
             return dec_out[:,-self.pred_len:,:], attns
         else:
             return dec_out[:,-self.pred_len:,:] # [B, L, D]
+
+
