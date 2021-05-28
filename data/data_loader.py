@@ -27,7 +27,7 @@ class Dataset_ETT_hour(Dataset):
             self.label_len = size[1]
             self.pred_len = size[2]
         # init
-        assert flag in ['train', 'test', 'val']
+        assert flag in ['train', 'test', 'val', 'next']
         type_map = {'train':0, 'val':1, 'test':2}
         self.set_type = type_map[flag]
         

@@ -191,3 +191,42 @@ def get_logger(file_path):
     logger.setLevel(logging.INFO)
 
     return logger
+
+def broadcast_coalesced(src, tensors):
+    list_tensors = [i for i in tensors]
+    shapes = [i.shape for i in list_tensors]
+    for i in range(len(list_tensors)):
+        list_tensors[i] = list_tensors[i].flatten()
+
+    sizes = [t.numel() for t in list_tensors]
+    data = torch.cat(list_tensors)
+
+    dist.broadcast(data, src)
+    cur = 0
+    for step, (shape, size) in enumerate(zip(shapes, sizes)):
+        list_tensors[step] = data[cur:cur+size].reshape(shape)
+        cur += size
+    return list_tensors
+
+
+def all_reduce_coalesced(tensors, im_group=None):
+    list_tensors = [i for i in tensors]
+    shapes = [i.shape for i in list_tensors]
+    for i in range(len(list_tensors)):
+        list_tensors[i] = list_tensors[i].flatten()
+
+    sizes = [t.numel() for t in list_tensors]
+    try:
+        data = torch.cat(list_tensors)
+    except RuntimeError:
+        print(list_tensors, type(list_tensors))
+        exit()
+    if im_group is None:
+        dist.all_reduce(data)
+    else:
+        dist.all_reduce(data, group=im_group)
+    cur = 0
+    for step, (shape, size) in enumerate(zip(shapes, sizes)):
+        list_tensors[step] = data[cur:cur+size].reshape(shape)
+        cur += size
+    return list_tensors

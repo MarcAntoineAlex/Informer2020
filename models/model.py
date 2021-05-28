@@ -80,6 +80,26 @@ class Informer(nn.Module):
         else:
             return dec_out[:,-self.pred_len:,:] # [B, L, D]
 
+    def H(self):
+        _Q = []
+        _K = []
+        _V = []
+        for n, p in self.named_parameters():
+            if "query_projection" in n:
+                _Q.append((n, p))
+            if "key_projection" in n:
+                _K.append((n, p))
+            if "value_projection" in n:
+                _V.append((n, p))
+        return _Q, _K, _V
+
+    def W(self):
+        _W = []
+        for n, p in self.named_parameters():
+            if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
+                _W.append((n, p))
+        return _W
+
 
 class InformerStack(nn.Module):
     def __init__(self, enc_in, dec_in, c_out, seq_len, label_len, out_len, 

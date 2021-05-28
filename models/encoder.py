@@ -52,6 +52,7 @@ class EncoderLayer(nn.Module):
 
         return self.norm2(x+y), attn
 
+
 class Encoder(nn.Module):
     def __init__(self, attn_layers, conv_layers=None, norm_layer=None):
         super(Encoder, self).__init__()
@@ -78,6 +79,8 @@ class Encoder(nn.Module):
             x = self.norm(x)
 
         return x, attns
+
+
 
 class EncoderStack(nn.Module):
     def __init__(self, encoders, inp_lens):
