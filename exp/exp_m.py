@@ -140,8 +140,8 @@ class Exp_M_Informer(Exp_Basic):
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
-        next_data, next_loader = self._get_data(flag='next')
-        test_data, test_loader = self._get_data(flag='train')
+        next_data, next_loader = self._get_data(flag='train')
+        test_data, test_loader = self._get_data(flag='test')
 
         path = os.path.join(self.args.checkpoints, setting)
         if not os.path.exists(path):
