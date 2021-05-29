@@ -68,7 +68,7 @@ def worker(gpu, ngpus_per_node, args_in):
     # begin
     logger.info("Logger is set - training start")
 
-    if args.dist_url == "env://" and config.rank == -1:
+    if args.dist_url == "env://" and args.rank == -1:
         args.rank = int(os.environ["RANK"])
 
     if args.mp_dist:
