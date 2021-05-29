@@ -108,7 +108,7 @@ class MInformerConfig(BaseConfig):
 
         parser.add_argument('--w_momentum', type=float, default=0.9)
         parser.add_argument('--w_weight_decay', type=float, default=3e-4)
-
+        parser.add_argument('--H_lr', type=float, default=0.1)
 
         args = parser.parse_args()
 
