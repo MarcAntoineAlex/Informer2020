@@ -86,18 +86,18 @@ class Informer(nn.Module):
         _V = []
         for n, p in self.named_parameters():
             if "query_projection" in n:
-                _Q.append((n, p))
+                _Q.append(p)
             if "key_projection" in n:
-                _K.append((n, p))
+                _K.append(p)
             if "value_projection" in n:
-                _V.append((n, p))
+                _V.append(p)
         return _Q, _K, _V
 
     def W(self):
         _W = []
         for n, p in self.named_parameters():
             if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
-                _W.append((n, p))
+                _W.append(p)
         return _W
 
 
