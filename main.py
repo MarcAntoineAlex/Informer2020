@@ -24,6 +24,7 @@ from exp.exp_m import Exp_M_Informer
 
 def main():
     config = tools.setup()
+    print("1")
     ngpus_per_node = torch.cuda.device_count()
     config.ngpus_per_node = ngpus_per_node
     if config.mp_dist:
@@ -41,6 +42,7 @@ def main():
 
 def worker(gpu, ngpus_per_node, args_in):
     # init
+    print("1")
     args = copy.deepcopy(args_in)
     jobid = os.environ["SLURM_JOBID"]
     procid = int(os.environ["SLURM_PROCID"])
