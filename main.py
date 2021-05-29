@@ -123,3 +123,6 @@ def worker(gpu, ngpus_per_node, args_in):
             exp.predict(setting, True)
 
         torch.cuda.empty_cache()
+
+if __name__ == '__main__':
+    main()

@@ -117,7 +117,7 @@ class MInformerConfig(BaseConfig):
         args = parser.parse_args()
         super().__init__(**vars(args))
 
-        self.data_path = './data/'
+        self.data_path = '/home/LAB/gaoch/asdf/data/ETDataset/ETT-small/'
         self.path = os.path.join("run", 'searchs')
         self._mk_folder(self.path)
         self.path = os.path.join(self.path, self.name)
@@ -127,10 +127,7 @@ class MInformerConfig(BaseConfig):
             self._mk_folder(self.path)
         except FileExistsError:
             pass
-        self.plot_path = os.path.join(self.path, 'plots')
-        try:
-            self._mk_folder(self.plot_path)
-        except FileExistsError:
+
             pass
         self.dist_path = os.path.join(self.path, 'dist')
         try:
