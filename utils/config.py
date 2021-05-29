@@ -106,6 +106,9 @@ class MInformerConfig(BaseConfig):
         parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
         parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
+        parser.add_argument('--w_momentum', type=float, default=0.9)
+        parser.add_argument('--w_weight_decay', type=float, default=3e-4)
+
         args = parser.parse_args()
 
         args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
