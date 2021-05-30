@@ -22,7 +22,7 @@ class Architect():
             self.net = self.net_in.module
             self.v_net = copy.deepcopy(net)
         else:
-            self.net = net
+            self.net = net.to(self.device)
             self.v_net = copy.deepcopy(net)
         self.w_momentum =self.args.w_momentum
         self.w_weight_decay = self.args.w_weight_decay
