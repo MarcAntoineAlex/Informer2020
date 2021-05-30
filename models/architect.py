@@ -42,7 +42,7 @@ class Architect():
             w_optim: weights optimizer
         """
         # forward & calc loss
-        pred = torch.zeros(trn_data[1][:, -self.args.pred_len:, :].shape)
+        pred = torch.zeros(trn_data[1][:, -self.args.pred_len:, :].shape).to(self.device)
         if self.args.rank == 0:
             pred, true = self._process_one_batch(trn_data, self.net)
             loss = self.criterion(pred, true)
@@ -70,7 +70,7 @@ class Architect():
                         va.copy_(a)
         return trn_data[1]
 
-    def unrolled_backward(self, args_in, trn_data, val_data, next_data, xi, w_optim, cor=1):
+    def unrolled_backward(self, args_in, trn_data, val_data, next_data, xi, w_optim):
         """ Compute unrolled loss and backward its gradients
         Args:
             xi: learning rate for virtual gradient step (same as net lr)
