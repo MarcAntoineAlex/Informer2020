@@ -165,10 +165,8 @@ class Exp_M_Informer(Exp_Basic):
             self.model.train()
             epoch_time = time.time()
             for i, (trn_data, val_data, next_data) in enumerate(zip(train_loader, vali_loader, next_loader)):
-                for t, v, n in zip(trn_data, val_data, next_data):
-                    t.to(self.device)
-                    v.to(self.device)
-                    n.to(self.device)
+                for i in range(len(trn_data))
+                    trn_data[i], val_data[i], next_data[i] = trn_data[i].to(self.device), val_data[i].to(self.device), next_data[i].to(self.device)
                 iter_count += 1
                 H_optim.zero_grad()
                 self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
