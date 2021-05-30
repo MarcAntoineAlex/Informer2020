@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 a = torch.ones(2, 3)
-b = a
-c = torch.cat([a, b])
-print(c)
+a[1][1] = float('-inf')
+print(a)
+print(F.softmax(a, dim=-1))
