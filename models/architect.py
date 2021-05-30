@@ -86,8 +86,8 @@ class Architect():
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
         # compute gradient
-        v_H = self.v_net.H()
-        v_W = self.v_net.W()
+        v_H = list(self.v_net.H())
+        v_W = list(self.v_net.W())
         v_grads = torch.autograd.grad(loss, v_W + v_H)
         dw = v_grads[:len(v_W)]
         dH = list(v_grads[len(v_W):])
@@ -128,7 +128,9 @@ class Architect():
                 p += eps_w * d
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
-        d_wpos = torch.autograd.grad(loss, self.net.H().append(trn_data[1]))
+        HD = list(self.net.H())
+        HD.append(trn_data[1])
+        d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
         dD_wpos = d_wpos[-1]
         dD_wposs = [torch.zeros(dD_wpos.shape) for i in range(args.world_size)]
@@ -140,11 +142,11 @@ class Architect():
 
         # w- = w - eps*dw`
         with torch.no_grad():
-            for p, d in zip(self.net.arch_weights(), dw):
+            for p, d in zip(self.net.W(), dw):
                 p -= 2. * eps_w * d
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
-        d_wneg = torch.autograd.grad(loss, self.net.H().append(trn_data[1]))
+        d_wneg = torch.autograd.grad(loss, HD)
         dH_wneg = d_wneg[:-1]
         dD_wneg = d_wneg[-1]
         dD_wnegs = [torch.zeros(dD_wneg.shape) for i in range(args.world_size)]
@@ -156,7 +158,7 @@ class Architect():
 
         # recover w
         with torch.no_grad():
-            for p, d in zip(self.net.arch_weights(), dw):
+            for p, d in zip(self.net.W(), dw):
                 p += eps_w * d
 
         if args.rank < args.world_size-1:
