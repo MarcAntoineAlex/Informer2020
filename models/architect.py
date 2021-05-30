@@ -56,7 +56,7 @@ class Architect():
         for r in range(0, self.args.world_size-1):
             if self.args.rank == r:
                 pred, true = self._process_one_batch(next_data, self.v_net)
-            pred = tools.broadcast_coalesced(r, pred)
+            dist.broadcast(pred, r)
             if self.args.rank == r+1:
                 trn_data[1] = torch.cat([trn_data[1][:, :self.args.label_len, :], pred], dim=1)
                 pred, true = self._process_one_batch(trn_data, self.net)
