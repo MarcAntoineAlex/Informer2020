@@ -285,7 +285,7 @@ class Exp_M_Informer(Exp_Basic):
 
     def _process_one_batch(self, dataset_object, data):
         batch_x = data[0].float().to(self.device)
-        batch_y = data[1].float()
+        batch_y = data[1].float().to(self.device)
 
         batch_x_mark = data[2].float().to(self.device)
         batch_y_mark = data[3].float().to(self.device)
