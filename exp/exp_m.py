@@ -144,13 +144,7 @@ class Exp_M_Informer(Exp_Basic):
         next_data, next_loader = self._get_data(flag='train')
         test_data, test_loader = self._get_data(flag='test')
 
-        for n, p in self.model.named_parameters():
-            if "query_projection" in n or "key_projection" in n or "value_projection" in n:
-                print(n)
 
-        for n, p in self.model.named_parameters():
-            if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
-                print(n)
 
 
         path = os.path.join(self.args.checkpoints, setting)

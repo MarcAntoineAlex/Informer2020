@@ -85,6 +85,14 @@ class Architect():
         # calc unrolled loss
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
+        loss.backward()
+        for n, p in self.net.named_parameters():
+            if "query_projection" in n or "key_projection" in n or "value_projection" in n:
+                print(n, p.grad)
+
+        for n, p in self.net.named_parameters():
+            if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
+                print(n, p.grad)
         # compute gradient
         v_H = list(self.v_net.H())
         v_W = list(self.v_net.W())
