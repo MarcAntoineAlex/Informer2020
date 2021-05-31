@@ -8,7 +8,7 @@ import utils.tools as tools
 
 class Architect():
     """ Compute gradients of alphas """
-    def __init__(self, net, device, args, criterion):
+    def __init__(self, net, device, args, criterion, inverse_transform=None):
         """
         Args:
             net
@@ -26,6 +26,8 @@ class Architect():
             self.v_net = copy.deepcopy(net)
         self.w_momentum =self.args.w_momentum
         self.w_weight_decay = self.args.w_weight_decay
+        if self.args.inverse:
+            self.inverse_transform = inverse_transform
 
     def virtual_step(self, trn_data, next_data, xi, w_optim):
         """
@@ -193,8 +195,8 @@ class Architect():
                 outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
             else:
                 outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-        # if self.args.inverse:
-        #     outputs = dataset_object.inverse_transform(outputs)
+        if self.args.inverse:
+            outputs = self.inverse_transform(outputs)
         f_dim = -1 if self.args.features == 'MS' else 0
         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
