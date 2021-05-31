@@ -172,7 +172,9 @@ class Exp_Informer(Exp_Basic):
                 else:
                     loss.backward()
                     model_optim.step()
-
+            for n, p in self.model.named_parameters():
+                if "query_projection" in n or "key_projection" in n or "value_projection" in n:
+                    print(n, p.grad)
             print("Epoch: {} cost time: {}".format(epoch+1, time.time()-epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
