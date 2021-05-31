@@ -85,13 +85,13 @@ class Architect():
         # logger.info("R{} check 2".format(rank))
 
         # calc unrolled loss
-        pred, true = self._process_one_batch(trn_data, self.net)
+        pred, true = self._process_one_batch(trn_data, self.v_net)
         loss = self.criterion(pred, true)
 
         # compute gradient
         v_H = list(self.v_net.H())
         v_W = list(self.v_net.W())
-        v_grads = torch.autograd.grad(loss, v_W + v_H, allow_unused=True)
+        v_grads = torch.autograd.grad(loss, v_W + v_H)
         dw = v_grads[:len(v_W)]
         dH = list(v_grads[len(v_W):])
 
@@ -133,7 +133,7 @@ class Architect():
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
         HD.append(trn_data[1])
-        d_wpos = torch.autograd.grad(loss, HD, allow_unused=True)
+        d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
         dD_wpos = d_wpos[-1]
         dD_wposs = [torch.zeros(dD_wpos.shape) for i in range(args.world_size)]
@@ -141,7 +141,7 @@ class Architect():
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = pred*dD_wposs[args.world_size+1].sum()
-            dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H(), allow_unused=True)
+            dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H())
 
         # w- = w - eps*dw`
         with torch.no_grad():
@@ -149,7 +149,7 @@ class Architect():
                 p -= 2. * eps_w * d
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
-        d_wneg = torch.autograd.grad(loss, HD, allow_unused=True)
+        d_wneg = torch.autograd.grad(loss, HD)
         dH_wneg = d_wneg[:-1]
         dD_wneg = d_wneg[-1]
         dD_wnegs = [torch.zeros(dD_wneg.shape) for i in range(args.world_size)]
@@ -157,7 +157,7 @@ class Architect():
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = pred*dD_wnegs[args.world_size+1].sum()
-            dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H(), allow_unused=True)
+            dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
 
         # recover w
         with torch.no_grad():
