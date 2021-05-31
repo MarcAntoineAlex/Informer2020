@@ -85,7 +85,7 @@ class Architect():
         # logger.info("R{} check 2".format(rank))
 
         # calc unrolled loss
-        pred, true = self._process_one_batch(trn_data, self.v_net)
+        pred, true = self._process_one_batch(val_data, self.v_net)
         loss = self.criterion(pred, true)
 
         # compute gradient
@@ -95,16 +95,16 @@ class Architect():
         dw = v_grads[:len(v_W)]
         dH = list(v_grads[len(v_W):])
 
-        hessian = self.compute_hessian(dw, dH, trn_data, next_data, args)
+        hessian = self.compute_hessian(dw, trn_data, next_data, args)
         # logger.info("R{} check 5".format(rank))
         # clipping hessian
         max_norm = float(args.max_hessian_grad_norm)
         hessian_clip = copy.deepcopy(hessian)
-        for h_c, h in zip(hessian_clip, hessian):
+        for n, (h_c, h) in enumerate(zip(hessian_clip, hessian)):
             h_norm = torch.norm(h.detach(), dim=-1)
             max_coeff = h_norm / max_norm
             max_coeff[max_coeff < 1.0] = torch.tensor(1.0).cuda(args.gpu)
-            h_c = torch.div(h, max_coeff.unsqueeze(-1))
+            hessian_clip[n] = torch.div(h, max_coeff.unsqueeze(-1))
         hessian = hessian_clip
         # update final gradient = dalpha - xi*hessian
         with torch.no_grad():
