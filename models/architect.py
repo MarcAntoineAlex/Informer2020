@@ -135,7 +135,7 @@ class Architect():
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
-        dD_wpos = d_wpos[-1][:, -self.args.pred_len, :]
+        dD_wpos = d_wpos[-1][:, -self.args.pred_len, :].contiguous()
         dD_wposs = [torch.zeros(dD_wpos.shape).to(self.device) for i in range(args.world_size)]
         dist.all_gather(dD_wposs, dD_wpos)
         if args.rank < args.world_size-1:
