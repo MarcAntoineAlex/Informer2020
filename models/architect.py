@@ -135,7 +135,7 @@ class Architect():
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
-        dD_wpos = d_wpos[-1][:, -self.args.pred_len, :].contiguous()
+        dD_wpos = d_wpos[-1][:, -self.args.pred_len:, :].contiguous()
         dD_wposs = [torch.zeros(dD_wpos.shape).to(self.device) for i in range(args.world_size)]
         dist.all_gather(dD_wposs, dD_wpos)
         if args.rank < args.world_size-1:
@@ -149,16 +149,13 @@ class Architect():
                 p -= 2. * eps_w * d
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
-        print(HD[-1].shape)
         d_wneg = torch.autograd.grad(loss, HD)
         dH_wneg = d_wneg[:-1]
-        dD_wneg = d_wneg[-1]
-        print(dD_wneg.shape)
-        dD_wnegs = [torch.zeros(dD_wneg.shape) for i in range(args.world_size)]
+        dD_wneg = d_wneg[-1][:, -self.args.pred_len:, :].contiguous()
+        dD_wnegs = [torch.zeros(dD_wneg.shape).to(self.device) for i in range(args.world_size)]
         dist.all_gather(dD_wnegs, dD_wneg)
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
-            print(dD_wnegs[0].shape, dD_wnegs[1].shape)
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
             dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
 
