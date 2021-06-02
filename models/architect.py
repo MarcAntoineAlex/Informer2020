@@ -158,6 +158,7 @@ class Architect():
         dist.all_gather(dD_wnegs, dD_wneg)
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
+            print(dD_wnegs[0].shape, dD_wnegs[1].shape)
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
             dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
 
