@@ -133,9 +133,11 @@ class Architect():
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
         HD.append(trn_data[1])
+        print(HD[-1].shape)
         d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
         dD_wpos = d_wpos[-1][:, -self.args.pred_len, :].contiguous()
+        print(HD[-1].shape)
         dD_wposs = [torch.zeros(dD_wpos.shape).to(self.device) for i in range(args.world_size)]
         dist.all_gather(dD_wposs, dD_wpos)
         if args.rank < args.world_size-1:
@@ -149,6 +151,7 @@ class Architect():
                 p -= 2. * eps_w * d
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
+        print(HD[-1].shape)
         d_wneg = torch.autograd.grad(loss, HD)
         dH_wneg = d_wneg[:-1]
         dD_wneg = d_wneg[-1]
