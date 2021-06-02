@@ -140,7 +140,7 @@ class Architect():
         dist.all_gather(dD_wposs, dD_wpos)
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
-            pseudo_loss = pred*dD_wposs[args.world_size+1].sum()
+            pseudo_loss = pred*dD_wposs[args.rank+1].sum()
             dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H())
 
         # w- = w - eps*dw`
