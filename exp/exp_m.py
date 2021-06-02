@@ -188,10 +188,6 @@ class Exp_M_Informer(Exp_Basic):
                     iter_count = 0
                     time_now = time.time()
 
-                H = list(self.model.H())
-                dH = torch.autograd.grad(loss, H)
-                print(dH)
-
                 if self.args.use_amp:
                     scaler.scale(loss).backward()
                     scaler.step(W_optim)
