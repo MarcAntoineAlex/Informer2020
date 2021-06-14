@@ -14,12 +14,12 @@ class Informer(nn.Module):
                  factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512,
                  dropout=0.0, attn='prob', embed='fixed', freq='h', activation='gelu',
                  output_attention=False, distil=True, mix=True,
-                 device=torch.device('cuda:0')):
+                 device=torch.device('cuda:0'), args=None):
         super(Informer, self).__init__()
         self.pred_len = out_len
         self.attn = attn
         self.output_attention = output_attention
-
+        self.args = args
         # Encoding
         self.enc_embedding = DataEmbedding(enc_in, d_model, embed, freq, dropout)
         self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout)
@@ -86,10 +86,19 @@ class Informer(nn.Module):
             if "query_projection" in n or "key_projection" in n or "value_projection" in n:
                 yield p
 
+    def A(self):
+        for n, p in self.named_parameters():
+            if "query_projection" in n or "key_projection" in n or "value_projection" in n:
+                pas = p.shape[0] / self.args.world_size
+                yield p[pas*self.args.rank]
+
     def W(self):
         for n, p in self.named_parameters():
             if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
                 yield p
+            elif self.args.rank != 0:
+                pas = p.shape[0] / self.args.world_size
+                yield p[:pas*self.args.rank]
 
 
 class InformerStack(nn.Module):

@@ -142,6 +142,9 @@ class Architect():
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = (pred*dD_wposs[args.rank+1]).sum()
             dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H())
+            for h in dH2_wpos:
+                pas = h.shape[0]
+                h[(self.args.rank+1)*pas:] = 0
 
         # w- = w - eps*dw`
         with torch.no_grad():
@@ -158,7 +161,9 @@ class Architect():
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
             dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
-
+            for h in dH2_wneg:
+                pas = h.shape[0]/self.args.world_size
+                h[(self.args.rank+1)*pas:] = 0
         # recover w
         with torch.no_grad():
             for p, d in zip(self.net.W(), dw):

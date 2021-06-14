@@ -118,8 +118,8 @@ class Exp_M_Informer(Exp_Basic):
 
     def _select_optimizer(self):
         W_optim = optim.Adam(self.model.W(), lr=self.args.learning_rate)
-        H_optim = optim.Adam(self.model.H(), self.args.H_lr, betas=(0.5, 0.999),
-                                   weight_decay=self.args.H_weight_decay)
+        A_optim = optim.Adam(self.model.A(), self.args.A_lr, betas=(0.5, 0.999),
+                                   weight_decay=self.args.A_weight_decay)
         return W_optim, H_optim
 
     def _select_criterion(self):
@@ -153,7 +153,7 @@ class Exp_M_Informer(Exp_Basic):
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
-        W_optim, H_optim = self._select_optimizer()
+        W_optim, A_optim = self._select_optimizer()
         criterion = self._select_criterion()
 
         if self.args.use_amp:
@@ -169,11 +169,21 @@ class Exp_M_Informer(Exp_Basic):
                 for i in range(len(trn_data)):
                     trn_data[i], val_data[i], next_data[i] = trn_data[i].float().to(self.device), val_data[i].float().to(self.device), next_data[i].float().to(self.device)
                 iter_count += 1
-                H_optim.zero_grad()
+                A_optim.zero_grad()
                 self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
                 for h in self.model.H():
+                    h_lenth = h.shape[0]
+                    pas = h_lenth/self.args.world_size
+                    for r in range(self.args.world_size-1):
+                        if self.args.rank < self.args.world_size - r:
+                            with torch.no_grad:
+                                dist.all_reduce(h[h_lenth-(r+1)*pas:h_lenth-r*pas].grad)
+                                h[h_lenth - (r + 1) * pas:h_lenth - r * pas].grad /= (self.args.world_size-r)
+                        else:
+                            z = torch.zeros(h.shape)
+                            dist.all_reduce(z[h_lenth-(r+1)*pas:h_lenth-r*pas])
                     dist.all_reduce(h.grad)
-                H_optim.step()
+                A_optim.step()
 
                 W_optim.zero_grad()
                 pred, true = self._process_one_batch(train_data, trn_data)
