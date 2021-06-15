@@ -141,12 +141,12 @@ class AttentionLayer(nn.Module):
             self.v_proj = nn.ModuleList()
             total = d_keys * n_heads
             for i in range(self.args.world_size-1):
-                self.q_proj.append(nn.Linear(d_model, total // self.world_size))
-                self.k_proj.append(nn.Linear(d_model, total // self.world_size))
-                self.v_proj.append(nn.Linear(d_model, total // self.world_size))
-            self.q_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
-            self.k_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
-            self.v_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
+                self.q_proj.append(nn.Linear(d_model, total // self.args.world_size))
+                self.k_proj.append(nn.Linear(d_model, total // self.args.world_size))
+                self.v_proj.append(nn.Linear(d_model, total // self.args.world_size))
+            self.q_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
+            self.k_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
+            self.v_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
         else:
             self.query_projection = nn.Linear(d_model, d_keys * n_heads)
             self.key_projection = nn.Linear(d_model, d_keys * n_heads)
