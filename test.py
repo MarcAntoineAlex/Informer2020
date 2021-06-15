@@ -35,28 +35,28 @@ import matplotlib.pyplot as plt
 #     plt.savefig("/Users/marc-antoine/Desktop/reduce/{}.png".format(step))
 #     plt.close(p)
 
-import imageio
-
-
-def create_gif(image_list, gif_name, duration=0.35):
-    frames = []
-    for image_name in image_list:
-        frames.append(imageio.imread(image_name))
-    imageio.mimsave(gif_name, frames, 'GIF', duration=duration)
-    return
-
-
-def main():
-    os.chdir("/Users/marc-antoine/Desktop/reduce/")
-    image_list = os.listdir()
-    image_list.sort()
-    image_list.remove('.DS_Store')
-    print(image_list)
-    gif_name = 'reduce.gif'
-    duration = 0.35
-    create_gif(image_list, gif_name, duration)
-
-
-if __name__ == '__main__':
-    main()
-
+# import imageio
+#
+#
+# def create_gif(image_list, gif_name, duration=0.35):
+#     frames = []
+#     for image_name in image_list:
+#         frames.append(imageio.imread(image_name))
+#     imageio.mimsave(gif_name, frames, 'GIF', duration=duration)
+#     return
+#
+#
+# def main():
+#     os.chdir("/Users/marc-antoine/Desktop/reduce/")
+#     image_list = os.listdir()
+#     image_list.sort()
+#     image_list.remove('.DS_Store')
+#     print(image_list)
+#     gif_name = 'reduce.gif'
+#     duration = 0.35
+#     create_gif(image_list, gif_name, duration)
+#
+#
+# if __name__ == '__main__':
+#     main()
+print(3//4)

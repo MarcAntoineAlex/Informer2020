@@ -119,7 +119,7 @@ class Architect():
         w- = w - eps_w * dw, h- = h - eps_h * dh
         hessian_w = (dalpha { L_trn(alpha, w+, h) } - dalpha { L_trn(alpha, w-, h) }) / (2*eps_w)
         hessian_h = (dalpha { L_trn(alpha, w, h+) } - dalpha { L_trn(alpha, w, h-) }) / (2*eps_h)
-        eps_w = 0.01 / ||dw||, eps_h = 0.01 / ||dh||
+        eps_w = 0.01 / ||dw||, eps_h = 0.01  ||dh||
         """
         norm_w = torch.cat([w.view(-1) for w in dw]).norm()
         eps_w = 0.01 / norm_w
@@ -143,7 +143,7 @@ class Architect():
             pseudo_loss = (pred*dD_wposs[args.rank+1]).sum()
             dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H())
             for h in dH2_wpos:
-                pas = h.shape[0]
+                pas = h.shape[0] // self.args.world_size
                 h[(self.args.rank+1)*pas:] = 0
 
         # w- = w - eps*dw`
@@ -162,7 +162,7 @@ class Architect():
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
             dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
             for h in dH2_wneg:
-                pas = h.shape[0]/self.args.world_size
+                pas = h.shape[0]//self.args.world_size
                 h[(self.args.rank+1)*pas:] = 0
         # recover w
         with torch.no_grad():

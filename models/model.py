@@ -89,7 +89,7 @@ class Informer(nn.Module):
     def A(self):
         for n, p in self.named_parameters():
             if "query_projection" in n or "key_projection" in n or "value_projection" in n:
-                pas = p.shape[0] / self.args.world_size
+                pas = p.shape[0] // self.args.world_size
                 yield p[pas*self.args.rank]
 
     def W(self):
@@ -97,7 +97,7 @@ class Informer(nn.Module):
             if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
                 yield p
             elif self.args.rank != 0:
-                pas = p.shape[0] / self.args.world_size
+                pas = p.shape[0] // self.args.world_size
                 yield p[:pas*self.args.rank]
 
 

@@ -175,7 +175,7 @@ class Exp_M_Informer(Exp_Basic):
                 self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
                 for h in self.model.H():
                     h_lenth = h.shape[0]
-                    pas = h_lenth/self.args.world_size
+                    pas = h_lenth//self.args.world_size
                     for r in range(self.args.world_size-1):
                         if self.args.rank < self.args.world_size - r:
                             with torch.no_grad:
