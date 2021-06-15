@@ -133,7 +133,7 @@ class Architect():
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
         zero_list = []
-        for i, (n, p) in enumerate(self.net.named_H):
+        for i, (n, p) in enumerate(self.net.named_H()):
             if "q_proj" in n or "k_proj" in n or "v_proj" in n:
                 for i in range(0, self.args.rank + 1):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
