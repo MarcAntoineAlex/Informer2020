@@ -120,7 +120,7 @@ class Exp_M_Informer(Exp_Basic):
 
     def _select_optimizer(self):
         if self.args.rank == 0:
-            for n, p in self.model.named_parameters:
+            for n, p in self.model.named_parameters():
                 print(n)
         else:
             time.sleep(100)
