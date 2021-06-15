@@ -132,6 +132,14 @@ class Architect():
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
+        zero_list = []
+        for i, (n, p) in enumerate(self.net.named_H):
+            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
+                for i in range(0, self.args.rank + 1):
+                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                        zero_list.append(i)
+                        break
+
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
@@ -141,10 +149,9 @@ class Architect():
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = (pred*dD_wposs[args.rank+1]).sum()
-            dH2_wpos = torch.autograd.grad(pseudo_loss, self.v_net.H())
-            for h in dH2_wpos:
-                pas = h.shape[0] // self.args.world_size
-                h[(self.args.rank+1)*pas:] = 0
+            dH2_wpos = list(torch.autograd.grad(pseudo_loss, self.v_net.H()))
+            for i in zero_list:
+                dH2_wpos[i] *= 0
 
         # w- = w - eps*dw`
         with torch.no_grad():
@@ -160,10 +167,9 @@ class Architect():
         if args.rank < args.world_size-1:
             pred, _ = self._process_one_batch(next_data, self.v_net)
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
-            dH2_wneg = torch.autograd.grad(pseudo_loss, self.v_net.H())
-            for h in dH2_wneg:
-                pas = h.shape[0]//self.args.world_size
-                h[(self.args.rank+1)*pas:] = 0
+            dH2_wneg = list(torch.autograd.grad(pseudo_loss, self.v_net.H()))
+            for i in zero_list:
+                dH2_wneg[i] *= 0
         # recover w
         with torch.no_grad():
             for p, d in zip(self.net.W(), dw):

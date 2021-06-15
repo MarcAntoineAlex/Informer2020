@@ -12,8 +12,10 @@ class M(nn.Module):
             self.X.append(nn.Linear(3, 4))
 
 m = M()
-for n, p in m.named_parameters():
-    print(n)
+
+l = [torch.ones(2, 3),  torch.ones(2, 3)]
+l[0] *= 0
+print(l)
 # with open("/Users/marc-antoine/Desktop/logfile.log") as f:
 #     l = f.readlines()
 #

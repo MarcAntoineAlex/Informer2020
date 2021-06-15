@@ -86,10 +86,15 @@ class Informer(nn.Module):
             if "q_proj" in n or "k_proj" in n or "v_proj" in n:
                 yield p
 
+    def named_H(self):
+        for n, p in self.named_parameters():
+            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
+                yield n, p
+
     def A(self):
         for n, p in self.named_parameters():
             if "q_proj" in n or "k_proj" in n or "v_proj" in n:
-                for i in range(self.args.rank, self.world_size):
+                for i in range(self.args.rank, self.args.world_size):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
                         yield p
                         break
