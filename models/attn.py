@@ -127,16 +127,30 @@ class ProbAttention(nn.Module):
 
 class AttentionLayer(nn.Module):
     def __init__(self, attention, d_model, n_heads, 
-                 d_keys=None, d_values=None, mix=False):
+                 d_keys=None, d_values=None, mix=False, args=None):
         super(AttentionLayer, self).__init__()
 
         d_keys = d_keys or (d_model//n_heads)
         d_values = d_values or (d_model//n_heads)
 
         self.inner_attention = attention
-        self.query_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.value_projection = nn.Linear(d_model, d_values * n_heads)
+        self.args = args
+        if args:
+            self.q_proj = nn.ModuleList()
+            self.k_proj = nn.ModuleList()
+            self.v_proj = nn.ModuleList()
+            total = d_keys * n_heads
+            for i in range(self.args.world_size-1):
+                self.q_proj.append(nn.Linear(d_model, total // self.world_size))
+                self.k_proj.append(nn.Linear(d_model, total // self.world_size))
+                self.v_proj.append(nn.Linear(d_model, total // self.world_size))
+            self.q_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
+            self.k_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
+            self.v_proj.append(nn.Linear(d_model, total // self.world_size + total % self.world_size))
+        else:
+            self.query_projection = nn.Linear(d_model, d_keys * n_heads)
+            self.key_projection = nn.Linear(d_model, d_keys * n_heads)
+            self.value_projection = nn.Linear(d_model, d_values * n_heads)
         self.out_projection = nn.Linear(d_values * n_heads, d_model)
         self.n_heads = n_heads
         self.mix = mix
@@ -146,6 +160,8 @@ class AttentionLayer(nn.Module):
         _, S, _ = keys.shape
         H = self.n_heads
 
+        if self.args:
+            queries = torch.cat([])
         queries = self.query_projection(queries).view(B, L, H, -1)
         keys = self.key_projection(keys).view(B, S, H, -1)
         values = self.value_projection(values).view(B, S, H, -1)

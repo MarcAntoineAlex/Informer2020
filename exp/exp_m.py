@@ -122,7 +122,7 @@ class Exp_M_Informer(Exp_Basic):
         W_optim = optim.Adam(self.model.W(), lr=self.args.learning_rate)
         A_optim = optim.Adam(self.model.A(), self.args.A_lr, betas=(0.5, 0.999),
                                    weight_decay=self.args.A_weight_decay)
-        return W_optim, H_optim
+        return W_optim, A_optim
 
     def _select_criterion(self):
         criterion = nn.MSELoss()
@@ -155,7 +155,7 @@ class Exp_M_Informer(Exp_Basic):
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
-        W_optim, A_optim = self._select_optimizer()
+        # W_optim, A_optim = self._select_optimizer()
         criterion = self._select_criterion()
 
         if self.args.use_amp:
@@ -168,6 +168,7 @@ class Exp_M_Informer(Exp_Basic):
             self.model.train()
             epoch_time = time.time()
             for i, (trn_data, val_data, next_data) in enumerate(zip(train_loader, vali_loader, next_loader)):
+                print(trn_data.shape)
                 for i in range(len(trn_data)):
                     trn_data[i], val_data[i], next_data[i] = trn_data[i].float().to(self.device), val_data[i].float().to(self.device), next_data[i].float().to(self.device)
                 iter_count += 1

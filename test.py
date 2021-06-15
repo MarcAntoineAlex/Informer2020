@@ -4,7 +4,16 @@ import torch.nn.functional as F
 import os
 import matplotlib.pyplot as plt
 
+class M(nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+        self.X = nn.ModuleList()
+        for i in range(3):
+            self.X.append(nn.Linear(3, 4))
 
+m = M()
+for n, p in m.named_parameters():
+    print(n)
 # with open("/Users/marc-antoine/Desktop/logfile.log") as f:
 #     l = f.readlines()
 #
@@ -59,4 +68,4 @@ import matplotlib.pyplot as plt
 #
 # if __name__ == '__main__':
 #     main()
-print(3//4)
+
