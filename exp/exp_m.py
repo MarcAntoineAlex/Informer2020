@@ -119,6 +119,11 @@ class Exp_M_Informer(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
+        if self.args.rank == 0:
+            for n, p in self.model.named_parameters:
+                print(n)
+        else:
+            time.sleep(100)
         W_optim = optim.Adam(self.model.W(), lr=self.args.learning_rate)
         A_optim = optim.Adam(self.model.A(), self.args.A_lr, betas=(0.5, 0.999),
                                    weight_decay=self.args.A_weight_decay)
