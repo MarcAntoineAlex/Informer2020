@@ -161,10 +161,13 @@ class AttentionLayer(nn.Module):
         H = self.n_heads
 
         if self.args:
-            queries = torch.cat([])
-        queries = self.query_projection(queries).view(B, L, H, -1)
-        keys = self.key_projection(keys).view(B, S, H, -1)
-        values = self.value_projection(values).view(B, S, H, -1)
+            queries = torch.cat([q(queries) for q in self.q_proj], dim=-1).view(B, L, H, -1)
+            keys = torch.cat([k(keys) for k in self.k_proj], dim=-1).view(B, S, H, -1)
+            values = torch.cat([v(values) for v in self.v_proj], dim=-1).view(B, S, H, -1)
+        else:
+            queries = self.query_projection(queries).view(B, L, H, -1)
+            keys = self.key_projection(keys).view(B, S, H, -1)
+            values = self.value_projection(values).view(B, S, H, -1)
 
         out, attn = self.inner_attention(
             queries,

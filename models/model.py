@@ -83,22 +83,26 @@ class Informer(nn.Module):
 
     def H(self):
         for n, p in self.named_parameters():
-            if "query_projection" in n or "key_projection" in n or "value_projection" in n:
+            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
                 yield p
 
     def A(self):
         for n, p in self.named_parameters():
-            if "query_projection" in n or "key_projection" in n or "value_projection" in n:
-                pas = p.shape[0] // self.args.world_size
-                yield p[pas*self.args.rank]
+            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
+                for i in range(self.args.rank, self.world_size):
+                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                        yield p
+                        break
 
     def W(self):
         for n, p in self.named_parameters():
             if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
                 yield p
             elif self.args.rank != 0:
-                pas = p.shape[0] // self.args.world_size
-                yield p[:pas*self.args.rank]
+                for i in range(0, self.args.rank):
+                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                        yield p
+                        break
 
 
 class InformerStack(nn.Module):
