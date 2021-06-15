@@ -59,6 +59,7 @@ class Exp_M_Informer(Exp_Basic):
             ).float()
         else:
             raise NotImplementedError
+        # something
 
         self.arch = Architect(model, self.device, self.args, self._select_criterion())
         return model
