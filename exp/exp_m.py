@@ -119,11 +119,6 @@ class Exp_M_Informer(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
-        if self.args.rank == 0:
-            for n, p in self.model.named_parameters():
-                print(n)
-        else:
-            time.sleep(100)
         W_optim = optim.Adam(self.model.W(), lr=self.args.learning_rate)
         A_optim = optim.Adam(self.model.A(), self.args.A_lr, betas=(0.5, 0.999),
                                    weight_decay=self.args.A_weight_decay)
@@ -183,7 +178,7 @@ class Exp_M_Informer(Exp_Basic):
                     pas = h_lenth//self.args.world_size
                     for r in range(self.args.world_size-1):
                         if self.args.rank < self.args.world_size - r:
-                            with torch.no_grad:
+                            with torch.no_grad():
                                 dist.all_reduce(h[h_lenth-(r+1)*pas:h_lenth-r*pas].grad)
                                 h[h_lenth - (r + 1) * pas:h_lenth - r * pas].grad /= (self.args.world_size-r)
                         else:
