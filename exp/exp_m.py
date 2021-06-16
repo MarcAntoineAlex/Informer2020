@@ -173,18 +173,16 @@ class Exp_M_Informer(Exp_Basic):
                 iter_count += 1
                 A_optim.zero_grad()
                 self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
-                for h in self.model.H():
-                    h_lenth = h.shape[0]
-                    pas = h_lenth//self.args.world_size
-                    for r in range(self.args.world_size-1):
-                        if self.args.rank < self.args.world_size - r:
-                            with torch.no_grad():
-                                dist.all_reduce(h[h_lenth-(r+1)*pas:h_lenth-r*pas].grad)
-                                h[h_lenth - (r + 1) * pas:h_lenth - r * pas].grad /= (self.args.world_size-r)
-                        else:
-                            z = torch.zeros(h.shape)
-                            dist.all_reduce(z[h_lenth-(r+1)*pas:h_lenth-r*pas])
-                    dist.all_reduce(h.grad)
+                for r in range(1,self.args.world_size):
+                    for n, h in self.model.named_H():
+                        if "q_proj.{}".format(r) in n or "k_proj.{}".format(r) in n or "v_proj.{}".format(r) in n:
+                            if self.args.rank <= r:
+                                with torch.no_grad():
+                                    dist.all_reduce(h.grad)
+                                    h.grad /= r+1
+                            else:
+                                z = torch.zeros(h.shape)
+                                dist.all_reduce(z)
                 A_optim.step()
 
                 W_optim.zero_grad()
