@@ -131,8 +131,6 @@ class MInformerConfig(BaseConfig):
             self._mk_folder(self.path)
         except FileExistsError:
             pass
-
-            pass
         self.dist_path = os.path.join(self.path, 'dist')
         try:
             self._mk_folder(self.dist_path)
