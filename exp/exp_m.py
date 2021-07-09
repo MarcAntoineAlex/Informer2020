@@ -140,13 +140,17 @@ class Exp_M_Informer(Exp_Basic):
         self.model.train()
         return total_loss
 
-    def train(self, setting):
+    def train(self, ii):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
         next_data, next_loader = self._get_data(flag='train')
         test_data, test_loader = self._get_data(flag='test')
 
-        path = self.args.path
+        path = os.path.join(self.args.path, str(ii))
+        try:
+            os.mkdir(path)
+        except FileExistsError:
+            pass
         time_now = time.time()
 
         train_steps = len(train_loader)
