@@ -154,7 +154,7 @@ class Exp_M_Informer(Exp_Basic):
         time_now = time.time()
 
         train_steps = len(train_loader)
-        early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
+        early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, rank=self.args.rank)
 
         W_optim, A_optim = self._select_optimizer()
         criterion = self._select_criterion()
@@ -221,7 +221,7 @@ class Exp_M_Informer(Exp_Basic):
 
             adjust_learning_rate(W_optim, epoch + 1, self.args)
 
-        best_model_path = path + '/' + 'checkpoint.pth'
+        best_model_path = path + '/' + '{}_checkpoint.pth'.format(self.args.rank)
         self.model.load_state_dict(torch.load(best_model_path))
 
         return self.model
