@@ -155,6 +155,7 @@ class Exp_M_Informer(Exp_Basic):
 
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, rank=self.args.rank)
+        print(self.args.rank)
 
         W_optim, A_optim = self._select_optimizer()
         criterion = self._select_criterion()
