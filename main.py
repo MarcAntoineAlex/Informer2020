@@ -53,6 +53,14 @@ def worker(gpu, ngpus_per_node, args_in):
 
     logger = tools.get_logger(os.path.join(args.path, logger_name))
 
+    if args.dist_url == "env://" and args.rank == -1:
+        args.rank = int(os.environ["RANK"])
+
+    if args.mp_dist:
+        # For multiprocessing distributed training, rank needs to be the
+        # global rank among all the processes
+        args.rank = args.rank * ngpus_per_node + gpu
+
     args.print_params(logger.info)
 
     # get cuda device
@@ -61,13 +69,7 @@ def worker(gpu, ngpus_per_node, args_in):
     # begin
     logger.info("Logger is set - training start")
 
-    if args.dist_url == "env://" and args.rank == -1:
-        args.rank = int(os.environ["RANK"])
 
-    if args.mp_dist:
-        # For multiprocessing distributed training, rank needs to be the
-        # global rank among all the processes
-        args.rank = args.rank * ngpus_per_node + gpu
     logger.info(
         'back:{}, dist_url:{}, world_size:{}, rank:{}'.format(args.dist_backend, args.dist_url, args.world_size,
                                                               args.rank))
@@ -93,6 +95,7 @@ def worker(gpu, ngpus_per_node, args_in):
     args.detail_freq = args.freq
     args.freq = args.freq[-1:]
 
+    print(args.rank)
     Exp = Exp_M_Informer
 
     for ii in range(args.itr):
