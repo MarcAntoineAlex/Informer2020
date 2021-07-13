@@ -24,7 +24,6 @@ from exp.exp_m import Exp_M_Informer
 
 def main():
     config = tools.setup()
-    print("1")
     ngpus_per_node = torch.cuda.device_count()
     config.ngpus_per_node = ngpus_per_node
     if config.mp_dist:
@@ -42,24 +41,16 @@ def main():
 
 def worker(gpu, ngpus_per_node, args_in):
     # init
-    print("1")
     args = copy.deepcopy(args_in)
     jobid = os.environ["SLURM_JOBID"]
     procid = int(os.environ["SLURM_PROCID"])
     args.gpu = gpu
 
     if args.gpu is not None:
-        writer_name = "tb.{}-{:d}-{:d}".format(jobid, procid, gpu)
         logger_name = "{}.{}-{:d}-{:d}.search.log".format(args.name, jobid, procid, gpu)
-        ploter_name = "{}-{:d}-{:d}".format(jobid, procid, gpu)
-        ck_name = "{}-{:d}-{:d}".format(jobid, procid, gpu)
     else:
-        writer_name = "tb.{}-{:d}-all".format(jobid, procid)
         logger_name = "{}.{}-{:d}-all.search.log".format(args.name, jobid, procid)
-        ploter_name = "{}-{:d}-all".format(jobid, procid)
-        ck_name = "{}-{:d}-all".format(jobid, procid)
 
-    print(logger_name)
     logger = tools.get_logger(os.path.join(args.path, logger_name))
 
     args.print_params(logger.info)
