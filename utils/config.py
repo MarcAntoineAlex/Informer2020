@@ -37,7 +37,7 @@ class MInformerConfig(BaseConfig):
     def build_parser(self):
         parser = get_parser("Search config")
         parser.add_argument('--name', required=True)
-        # distributed training
+        # distributed settings
         parser.add_argument('--dist_backend', type=str, default='nccl', help='distributed backend (default nccl)')
         parser.add_argument('--infi_band', type=str2bool, default=False, help='use infiniband')
         parser.add_argument('--infi_band_interface', default=0, type=int, help='default infiniband interface id')
@@ -47,10 +47,10 @@ class MInformerConfig(BaseConfig):
         parser.add_argument('--dist_url', default='tcp://localhost:23456', type=str, help='url used to set up distributed training')
         parser.add_argument('--mp_dist', type=str2bool, default=True, help='allow multiple GPU on 1 node')
         parser.add_argument('--gpu', default=None, type=int, nargs='+', help='local GPU id to use')
-        # precrastinative learning
+
+        # informer settings
         parser.add_argument('--model', type=str, required=True, default='informer',
                             help='model of experiment, options: [informer, informerstack, informerlight(TBD)]')
-
         parser.add_argument('--data', type=str, required=True, default='ETTh1', help='data')
         parser.add_argument('--root_path', type=str, default='/home/LAB/gaoch/asdf/data/ETDataset/ETT-small/', help='root path of the data file')
         parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
@@ -60,7 +60,6 @@ class MInformerConfig(BaseConfig):
         parser.add_argument('--freq', type=str, default='h',
                             help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
         parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
-
         parser.add_argument('--seq_len', type=int, default=96, help='input sequence length of Informer encoder')
         parser.add_argument('--label_len', type=int, default=48, help='start token length of Informer decoder')
         parser.add_argument('--pred_len', type=int, default=24, help='prediction sequence length')
@@ -106,11 +105,13 @@ class MInformerConfig(BaseConfig):
         parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
         parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
+        # other settings
         parser.add_argument('--w_momentum', type=float, default=0.9)
         parser.add_argument('--w_weight_decay', type=float, default=3e-4)
         parser.add_argument('--A_lr', type=float, default=0.1)
         parser.add_argument('--A_weight_decay', type=float, default=3e-4)
         parser.add_argument('--max_hessian_grad_norm', type=float, default=1)
+        parser.add_argument('--ratio', type=float, default=0.5)
 
         args = parser.parse_args()
 

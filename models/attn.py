@@ -53,11 +53,12 @@ class ProbAttention(nn.Module):
         K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
         index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
         K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
-        Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()
+        Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()  # Q [B, H, Lq, 1, E] * K [B, H, Lq, E, ln(Lk)]
+                                                                                          # = [B, H, Lq, 1, ln(Lk)]
 
         # find the Top_k query with sparisty measurement
-        M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)
-        M_top = M.topk(n_top, sorted=False)[1]
+        M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)  # M [B, H, Lq]
+        M_top = M.topk(n_top, sorted=False)[1]  # M_top [B, H, ln(Lq)] （indice）
 
         # use the reduced Q to calculate Q_K
         Q_reduce = Q[torch.arange(B)[:, None, None],
@@ -140,13 +141,16 @@ class AttentionLayer(nn.Module):
             self.k_proj = nn.ModuleList()
             self.v_proj = nn.ModuleList()
             total = d_keys * n_heads
+            w_minus_1 = self.args.world_size - 1
+            L_A = (d_keys * n_heads * self.args.ratio // w_minus_1) * w_minus_1
+            self.q_proj.append(nn.Linear(d_model, total - L_A))
+            self.k_proj.append(nn.Linear(d_model, total - L_A))
+            self.v_proj.append(nn.Linear(d_model, total - L_A))
             for i in range(self.args.world_size-1):
-                self.q_proj.append(nn.Linear(d_model, total // self.args.world_size))
-                self.k_proj.append(nn.Linear(d_model, total // self.args.world_size))
-                self.v_proj.append(nn.Linear(d_model, total // self.args.world_size))
-            self.q_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
-            self.k_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
-            self.v_proj.append(nn.Linear(d_model, total // self.args.world_size + total % self.args.world_size))
+                self.q_proj.append(nn.Linear(d_model, L_A // w_minus_1))
+                self.k_proj.append(nn.Linear(d_model, total // w_minus_1))
+                self.v_proj.append(nn.Linear(d_model, total // w_minus_1))
+
         else:
             self.query_projection = nn.Linear(d_model, d_keys * n_heads)
             self.key_projection = nn.Linear(d_model, d_keys * n_heads)
@@ -160,7 +164,7 @@ class AttentionLayer(nn.Module):
         _, S, _ = keys.shape
         H = self.n_heads
 
-        if self.args:
+        if self.args is not None:
             queries = torch.cat([q(queries) for q in self.q_proj], dim=-1).view(B, L, H, -1)
             keys = torch.cat([k(keys) for k in self.k_proj], dim=-1).view(B, S, H, -1)
             values = torch.cat([v(values) for v in self.v_proj], dim=-1).view(B, S, H, -1)

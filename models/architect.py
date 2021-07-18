@@ -82,7 +82,6 @@ class Architect():
         args = args_in
         # do virtual step (calc w`)
         trn_data[1] = self.virtual_step(trn_data, next_data, xi, w_optim)
-        # logger.info("R{} check 2".format(rank))
 
         # calc unrolled loss
         pred, true = self._process_one_batch(val_data, self.v_net)
