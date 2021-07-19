@@ -136,8 +136,6 @@ class AttentionLayer(nn.Module):
 
         self.inner_attention = attention
         self.args = args
-        print(type(d_model))
-        print(d_model)
         if args is not None:
             self.q_proj = nn.ModuleList()
             self.k_proj = nn.ModuleList()
@@ -145,8 +143,8 @@ class AttentionLayer(nn.Module):
             total = d_keys * n_heads
             w_minus_1 = self.args.world_size - 1
             L_A = (d_keys * n_heads * self.args.ratio // w_minus_1) * w_minus_1
-            print(type(d_model))
-            d_model = int(d_model)
+            print(type(L_A))
+            print(L_A)
             self.q_proj.append(nn.Linear(d_model, total - L_A))
             self.k_proj.append(nn.Linear(d_model, total - L_A))
             self.v_proj.append(nn.Linear(d_model, total - L_A))
