@@ -148,8 +148,8 @@ class AttentionLayer(nn.Module):
             self.v_proj.append(nn.Linear(d_model, total - L_A))
             for i in range(self.args.world_size-1):
                 self.q_proj.append(nn.Linear(d_model, L_A // w_minus_1))
-                self.k_proj.append(nn.Linear(d_model, total // w_minus_1))
-                self.v_proj.append(nn.Linear(d_model, total // w_minus_1))
+                self.k_proj.append(nn.Linear(d_model, L_A // w_minus_1))
+                self.v_proj.append(nn.Linear(d_model, L_A // w_minus_1))
 
         else:
             self.query_projection = nn.Linear(d_model, d_keys * n_heads)
@@ -163,9 +163,7 @@ class AttentionLayer(nn.Module):
         B, L, _ = queries.shape
         _, S, _ = keys.shape
         H = self.n_heads
-        for q in self.k_proj:
-            print(q(keys).shape)
-        print(torch.cat([k(keys) for k in self.k_proj], dim=-1).shape)
+
         if self.args is not None:
             queries = torch.cat([q(queries) for q in self.q_proj], dim=-1).view(B, L, H, -1)
             keys = torch.cat([k(keys) for k in self.k_proj], dim=-1).view(B, S, H, -1)
