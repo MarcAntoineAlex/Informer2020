@@ -101,13 +101,37 @@ class Informer(nn.Module):
 
     def W(self):
         for n, p in self.named_parameters():
-            if ("query_projection" not in n) and ("key_projection" not in n) and ("value_projection" not in n):
+            if ("q_proj" not in n) and ("k_proj" not in n) and ("v_proj" not in n):
                 yield p
             elif self.args.rank != 0:
                 for i in range(0, self.args.rank):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
                         yield p
                         break
+            else:
+                if "q_proj.0" in n or "k_proj.0" in n or "v_proj.0" in n:
+                    yield p
+
+    def named_A(self):
+        for n, p in self.named_parameters():
+            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
+                for i in range(self.args.rank, self.args.world_size):
+                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                        yield n, p
+                        break
+
+    def named_W(self):
+        for n, p in self.named_parameters():
+            if ("q_proj" not in n) and ("k_proj" not in n) and ("v_proj" not in n):
+                yield n,p
+            elif self.args.rank != 0:
+                for i in range(0, self.args.rank):
+                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                        yield n, p
+                        break
+            else:
+                if "q_proj.0" in n or "k_proj.0" in n or "v_proj.0" in n:
+                    yield n, p
 
 
 class InformerStack(nn.Module):
