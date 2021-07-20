@@ -165,6 +165,7 @@ class AttentionLayer(nn.Module):
         H = self.n_heads
         for q in self.q_proj:
             print(q(queries).shape)
+        print(torch.cat([q(queries) for q in self.q_proj], dim=-1).shape)
         if self.args is not None:
             queries = torch.cat([q(queries) for q in self.q_proj], dim=-1).view(B, L, H, -1)
             keys = torch.cat([k(keys) for k in self.k_proj], dim=-1).view(B, S, H, -1)
