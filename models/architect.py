@@ -53,7 +53,7 @@ class Architect():
                 for w, vw, g in zip(self.net.W(), self.v_net.W(), gradients):
                     m = w_optim.state[w].get('momentum_buffer', 0.) * self.w_momentum
                     vw.copy_(w - xi * (m + g + self.w_weight_decay * w))
-                for a, va in zip(self.net.H(), self.v_net.H()):
+                for a, va in zip(self.net.A(), self.v_net.A()):
                     va.copy_(a)
         for r in range(0, self.args.world_size-1):
             if self.args.rank == r:
@@ -68,7 +68,7 @@ class Architect():
                     for w, vw, g in zip(self.net.W(), self.v_net.W(), gradients):
                         m = w_optim.state[w].get('momentum_buffer', 0.) * self.w_momentum
                         vw.copy_(w - xi * (m + g + self.w_weight_decay * w))
-                    for a, va in zip(self.net.H(), self.v_net.H()):
+                    for a, va in zip(self.net.A(), self.v_net.A()):
                         va.copy_(a)
         return trn_data[1]
 
