@@ -5,11 +5,10 @@ import os
 import matplotlib.pyplot as plt
 from data.data_loader import Dataset_ETT_hour
 
-n = torch.randint(10, (5, 5))
-m = torch.arange(10)[:, None, None]
-a = 1.0
-b = 2
-l = nn.Linear(a, b)
+n = torch.zeros(3, 4)
+m = n.reshape(-1)
+for i in m:
+    print(i)
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',
@@ -22,3 +21,4 @@ l = nn.Linear(a, b)
 #             freq='h',
 #             cols=None
 #         )
+m = n

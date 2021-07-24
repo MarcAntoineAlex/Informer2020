@@ -109,7 +109,7 @@ class Architect():
         # with torch.no_grad():
         #     for h, dh, he in zip(self.net.H(), dH, hessian):
         #         h.grad = dh - xi*he
-        return hessian
+
 
     def compute_hessian(self, dw, trn_data, next_data, args):
         """

@@ -200,7 +200,13 @@ class Exp_M_Informer(Exp_Basic):
                 W_optim.zero_grad()
                 if self.args.rank == 0:
                     for p in self.model.parameters():
-                        print(p.grad)
+                        if p.grad is None:
+                            continue
+                        else:
+                            temp = p.grad.reshape(-1)
+                            for i in temp:
+                                if i.item() != 0:
+                                    print("ERROR {}".format(p))
                 pred, true = self._process_one_batch(train_data, trn_data)
                 loss = criterion(pred, true)
                 train_loss.append(loss.item())
