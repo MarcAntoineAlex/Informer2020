@@ -120,15 +120,19 @@ class Informer(nn.Module):
     def named_A(self):
         for n, p in self.named_parameters():
             if "q_proj" in n or "k_proj" in n or "v_proj" in n:
-                for i in range(self.args.rank, self.args.world_size):
-                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
-                        yield n, p
-                        break
+                if self.args.rank != 0:
+                    for i in range(self.args.rank, self.args.world_size):
+                        if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                            yield n, p
+                else:
+                    for i in range(1, self.args.world_size):
+                        if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
+                            yield n, p
 
     def named_W(self):
         for n, p in self.named_parameters():
             if ("q_proj" not in n) and ("k_proj" not in n) and ("v_proj" not in n):
-                yield n,p
+                yield n, p
             elif self.args.rank != 0:
                 for i in range(0, self.args.rank):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:

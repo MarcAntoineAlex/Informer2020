@@ -163,16 +163,16 @@ class Exp_M_Informer(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
-        # print("*************** {}".format(self.args.rank))
-        # print("-----W-------")
-        # for n, _ in self.model.named_W():
-        #     print(n)
-        # print("-----A-------")
-        # for n, _ in self.model.named_A():
-        #     print(n)
-        # print("-----H-------")
-        # for n, _ in self.model.named_H():
-        #     print(n)
+        print("*************** {}".format(self.args.rank))
+        print("-----W-------")
+        for n, _ in self.model.named_W():
+            print(n)
+        print("-----A-------")
+        for n, _ in self.model.named_A():
+            print(n)
+        print("-----H-------")
+        for n, _ in self.model.named_H():
+            print(n)
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
