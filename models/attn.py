@@ -43,15 +43,15 @@ class ProbAttention(nn.Module):
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
-        self.choice = None
+        # self.choice = None
 
     def _prob_QK(self, Q, K, sample_k, n_top): # n_top: c*ln(L_q)
         # Q [B, H, L, D]
         B, H, L_K, E = K.shape
         _, _, L_Q, D = Q.shape
 
-        if self.choice is None:
-            self.choice = nn.Sequential(nn.Linear(D, L_K), nn.Softmax(L_K))
+        # if self.choice is None:
+        #     self.choice = nn.Sequential(nn.Linear(D, L_K), nn.Softmax(L_K))
         # calculate the sampled Q_K
         K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
         # index_sample = torch.topk(self.choice(Q),sample_k)[1]
