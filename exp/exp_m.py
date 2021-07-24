@@ -155,7 +155,6 @@ class Exp_M_Informer(Exp_Basic):
 
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, rank=self.args.rank)
-        print(self.args.rank)
 
         W_optim, A_optim = self._select_optimizer()
         criterion = self._select_criterion()
@@ -163,16 +162,16 @@ class Exp_M_Informer(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
-        print("*************** {}".format(self.args.rank))
-        print("-----W-------")
-        for n, _ in self.model.named_W():
-            print(n)
-        print("-----A-------")
-        for n, _ in self.model.named_A():
-            print(n)
-        print("-----H-------")
-        for n, _ in self.model.named_H():
-            print(n)
+        # print("*************** {}".format(self.args.rank))
+        # print("-----W-------")
+        # for n, _ in self.model.named_W():
+        #     print(n)
+        # print("-----A-------")
+        # for n, _ in self.model.named_A():
+        #     print(n)
+        # print("-----H-------")
+        # for n, _ in self.model.named_H():
+        #     print(n)
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
@@ -199,12 +198,15 @@ class Exp_M_Informer(Exp_Basic):
                 A_optim.step()
 
                 W_optim.zero_grad()
+                if self.args.rank == 0:
+                    for p in self.model.parameters():
+                        print(p.grad)
                 pred, true = self._process_one_batch(train_data, trn_data)
                 loss = criterion(pred, true)
                 train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
-                    print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
+                    print("\tR{0} iters: {1}, epoch: {2} | loss: {3:.7f}".format(self.args.rank, i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
                     print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
@@ -219,13 +221,13 @@ class Exp_M_Informer(Exp_Basic):
                     loss.backward()
                     W_optim.step()
 
-            print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
+            print("R{} Epoch: {} cost time: {}".format(self.args.rank, epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
             test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-                epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+            print("R{0} Epoch: {1}, Steps: {2} | Train Loss: {3:.7f} Vali Loss: {4:.7f} Test Loss: {5:.7f}".format(
+                self.args.rank, epoch + 1, train_steps, train_loss, vali_loss, test_loss))
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -265,7 +267,7 @@ class Exp_M_Informer(Exp_Basic):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
+        print('R{} mse:{}, mae:{}'.format(self.args.rank, mse, mae))
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path + 'pred.npy', preds)
