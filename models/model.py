@@ -112,7 +112,6 @@ class Informer(nn.Module):
                 for i in range(0, self.args.rank):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
                         yield p
-                        break
             else:
                 if "q_proj.0" in n or "k_proj.0" in n or "v_proj.0" in n:
                     yield p
@@ -137,7 +136,6 @@ class Informer(nn.Module):
                 for i in range(0, self.args.rank):
                     if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
                         yield n, p
-                        break
             else:
                 if "q_proj.0" in n or "k_proj.0" in n or "v_proj.0" in n:
                     yield n, p

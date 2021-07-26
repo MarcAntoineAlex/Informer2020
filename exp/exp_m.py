@@ -198,7 +198,7 @@ class Exp_M_Informer(Exp_Basic):
                 A_optim.step()
 
                 W_optim.zero_grad()
-                if self.args.rank == 0:
+                if self.args.rank == 1:
                     for p in self.model.parameters():
                         if p.grad is None:
                             continue
