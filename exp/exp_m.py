@@ -108,7 +108,6 @@ class Exp_M_Informer(Exp_Basic):
             freq=freq,
             cols=args.cols
         )
-        print(flag, len(data_set))
         data_loader = DataLoader(
             data_set,
             batch_size=batch_size,
@@ -140,7 +139,7 @@ class Exp_M_Informer(Exp_Basic):
         self.model.train()
         return total_loss
 
-    def train(self, ii):
+    def train(self, ii, logger):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
         next_data, next_loader = self._get_data(flag='train')
@@ -198,21 +197,15 @@ class Exp_M_Informer(Exp_Basic):
                 A_optim.step()
 
                 W_optim.zero_grad()
-                if self.args.rank == 1:
-                    for p in self.model.parameters():
-                        if p.grad is None:
-                            continue
-                        else:
-                            assert p.grad.max().item()==0 and p.grad.min().item() == 0
                 pred, true = self._process_one_batch(train_data, trn_data)
                 loss = criterion(pred, true)
                 train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
-                    print("\tR{0} iters: {1}, epoch: {2} | loss: {3:.7f}".format(self.args.rank, i + 1, epoch + 1, loss.item()))
+                    logger.info("\tR{0} iters: {1}, epoch: {2} | loss: {3:.7f}".format(self.args.rank, i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    logger.info('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
                     iter_count = 0
                     time_now = time.time()
 
@@ -224,16 +217,16 @@ class Exp_M_Informer(Exp_Basic):
                     loss.backward()
                     W_optim.step()
 
-            print("R{} Epoch: {} cost time: {}".format(self.args.rank, epoch + 1, time.time() - epoch_time))
+            logger.info("R{} Epoch: {} cost time: {}".format(self.args.rank, epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
             test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("R{0} Epoch: {1}, Steps: {2} | Train Loss: {3:.7f} Vali Loss: {4:.7f} Test Loss: {5:.7f}".format(
+            logger.info("R{0} Epoch: {1}, Steps: {2} | Train Loss: {3:.7f} Vali Loss: {4:.7f} Test Loss: {5:.7f}".format(
                 self.args.rank, epoch + 1, train_steps, train_loss, vali_loss, test_loss))
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
-                print("Early stopping")
+                logger.info("Early stopping")
                 break
 
             adjust_learning_rate(W_optim, epoch + 1, self.args)
@@ -243,7 +236,7 @@ class Exp_M_Informer(Exp_Basic):
 
         return self.model
 
-    def test(self, setting):
+    def test(self, setting, logger):
         test_data, test_loader = self._get_data(flag='test')
 
         self.model.eval()
@@ -259,10 +252,10 @@ class Exp_M_Informer(Exp_Basic):
 
         preds = np.array(preds)
         trues = np.array(trues)
-        print('test shape:', preds.shape, trues.shape)
+        logger.info('test shape:', preds.shape, trues.shape)
         preds = preds.reshape((-1, preds.shape[-2], preds.shape[-1]))
         trues = trues.reshape((-1, trues.shape[-2], trues.shape[-1]))
-        print('test shape:', preds.shape, trues.shape)
+        logger.info('test shape:', preds.shape, trues.shape)
 
         # result save
         folder_path = './results/' + setting + '/'
