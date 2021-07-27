@@ -263,7 +263,7 @@ class Exp_M_Informer(Exp_Basic):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('R{} mse:{}, mae:{}'.format(self.args.rank, mse, mae))
+        logger.info('R{} mse:{}, mae:{}'.format(self.args.rank, mse, mae))
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path + 'pred.npy', preds)
