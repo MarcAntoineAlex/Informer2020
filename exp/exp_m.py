@@ -252,10 +252,10 @@ class Exp_M_Informer(Exp_Basic):
 
         preds = np.array(preds)
         trues = np.array(trues)
-        logger.info('test shape:', preds.shape, trues.shape)
+        logger.info('test shape: {} {}'.format(preds.shape, trues.shape))
         preds = preds.reshape((-1, preds.shape[-2], preds.shape[-1]))
         trues = trues.reshape((-1, trues.shape[-2], trues.shape[-1]))
-        logger.info('test shape:', preds.shape, trues.shape)
+        logger.info('test shape: {} {}'.format(preds.shape, trues.shape))
 
         # result save
         folder_path = './results/' + setting + '/'
