@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 from data.data_loader import Dataset_ETT_hour
 
 n = torch.zeros(3, 4)
-m = n.reshape(-1)
-for i in m:
-    print(i)
+m = torch.exp(n)
+print(m)
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',

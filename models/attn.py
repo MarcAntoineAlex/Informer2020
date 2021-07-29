@@ -61,7 +61,8 @@ class ProbAttention(nn.Module):
                                                                                           # = [B, H, Lq, 1, ln(Lk)]
 
         # find the Top_k query with sparisty measurement
-        M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)  # M [B, H, Lq]
+        # M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)  # M [B, H, Lq]
+        M = torch.log(torch.exp(torch.div(Q_K_sample, D**0.5)).sum(-1)) - torch.div(Q_K_sample, D**0.5).sum(-1)/L_K
         M_top = M.topk(n_top, sorted=False)[1]  # M_top [B, H, ln(Lq)] （indice）
 
         # use the reduced Q to calculate Q_K
