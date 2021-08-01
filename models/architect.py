@@ -133,6 +133,7 @@ class Architect():
                 if "proj.{}".format(k) in n:
                     zero_list.append(i)
 
+
         # w+ = w + eps*dw`
         with torch.no_grad():
             for p, d in zip(self.net.W(), dw):
@@ -142,6 +143,7 @@ class Architect():
         HD = list(self.net.H())
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
+        print(zero_list, zero_list2, d_wpos)
         dH_wpos = d_wpos[:-1]
         dD_wpos = d_wpos[-1][:, -self.args.pred_len:, :].contiguous()
         dD_wposs = [torch.zeros(dD_wpos.shape).to(self.device) for i in range(args.world_size)]
