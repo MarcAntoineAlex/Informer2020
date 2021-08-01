@@ -153,7 +153,10 @@ class Architect():
             pseudo_loss = (pred*dD_wposs[args.rank+1]).sum()
             dH2_wpos = list(torch.autograd.grad(pseudo_loss, self.v_net.H()))
             for i in zero_list:
-                dH_wpos[i] *= 0
+                try:
+                    dH_wpos[i] *= 0
+                except TypeError:
+                    print("!!!!!!!!!!!!!!{}:{}".format(i, dH_wpos[i]))
             for i in zero_list2:
                 dH2_wpos[i] *= 0
 
