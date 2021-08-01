@@ -108,7 +108,7 @@ class Architect():
         # update final gradient = dalpha - xi*hessian
         with torch.no_grad():
             for h, dh, he in zip(self.net.H(), dH, hessian):
-                h.grad = dh - xi*he
+                h.grad = dh + he
 
 
     def compute_hessian(self, dw, trn_data, next_data, args):
@@ -124,6 +124,15 @@ class Architect():
         eps_w = 0.01 / norm_w
         trn_data[1].requires_grad = True
 
+        zero_list, zero_list2 = [], []
+        for i, (n, p) in enumerate(self.net.named_H()):
+            for j in range(0, self.args.rank+1):
+                if "proj.{}".format(j) in n:
+                    zero_list2.append(i)
+            for k in range(0, max(self.args.rank, 1)):
+                if "proj.{}".format(k) in n:
+                    zero_list.append(i)
+
         # w+ = w + eps*dw`
         with torch.no_grad():
             for p, d in zip(self.net.W(), dw):
@@ -131,14 +140,6 @@ class Architect():
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
-        zero_list = []
-        for i, (n, p) in enumerate(self.net.named_H()):
-            if "q_proj" in n or "k_proj" in n or "v_proj" in n:
-                for i in range(0, self.args.rank + 1):
-                    if "q_proj.{}".format(i) in n or "k_proj.{}".format(i) in n or "v_proj.{}".format(i) in n:
-                        zero_list.append(i)
-                        break
-
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
         dH_wpos = d_wpos[:-1]
@@ -150,6 +151,8 @@ class Architect():
             pseudo_loss = (pred*dD_wposs[args.rank+1]).sum()
             dH2_wpos = list(torch.autograd.grad(pseudo_loss, self.v_net.H()))
             for i in zero_list:
+                dH_wpos[i] *= 0
+            for i in zero_list2:
                 dH2_wpos[i] *= 0
 
         # w- = w - eps*dw`
@@ -168,6 +171,8 @@ class Architect():
             pseudo_loss = (pred*dD_wnegs[args.rank+1]).sum()
             dH2_wneg = list(torch.autograd.grad(pseudo_loss, self.v_net.H()))
             for i in zero_list:
+                dH_wneg[i] *= 0
+            for i in zero_list2:
                 dH2_wneg[i] *= 0
         # recover w
         with torch.no_grad():

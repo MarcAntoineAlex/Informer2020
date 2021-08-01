@@ -28,7 +28,7 @@ class Dataset_ETT_hour(Dataset):
             self.pred_len = size[2]
         # init
         assert flag in ['train', 'test', 'val', 'next']
-        type_map = {'train':0, 'val':1, 'test':2}
+        type_map = {'train':0, 'val':1, 'test':2, 'next':0}
         self.set_type = type_map[flag]
         
         self.features = features
@@ -37,6 +37,7 @@ class Dataset_ETT_hour(Dataset):
         self.inverse = inverse
         self.timeenc = timeenc
         self.freq = freq
+        self.flag = flag
         
         self.root_path = root_path
         self.data_path = data_path
@@ -44,8 +45,12 @@ class Dataset_ETT_hour(Dataset):
 
     def __read_data__(self):
         self.scaler = StandardScaler()
-        df_raw = pd.read_csv(os.path.join(self.root_path,
-                                          self.data_path))
+        if self.flag == 'next':
+            df_raw = pd.read_csv(os.path.join(self.root_path,
+                                              'ETTh2.csv'))
+        else:
+            df_raw = pd.read_csv(os.path.join(self.root_path,
+                                              self.data_path))
 
         border1s = [0, 12*30*24 - self.seq_len, 12*30*24+4*30*24 - self.seq_len]
         border2s = [12*30*24, 12*30*24+4*30*24, 12*30*24+8*30*24]
