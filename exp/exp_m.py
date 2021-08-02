@@ -182,19 +182,19 @@ class Exp_M_Informer(Exp_Basic):
                 for i in range(len(trn_data)):
                     trn_data[i], val_data[i], next_data[i] = trn_data[i].float().to(self.device), val_data[i].float().to(self.device), next_data[i].float().to(self.device)
                 iter_count += 1
-                A_optim.zero_grad()
-                self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
-                for r in range(1, self.args.world_size):
-                    for n, h in self.model.named_H():
-                        if "proj.{}".format(r) in n:
-                            if self.args.rank <= r:
-                                with torch.no_grad():
-                                    dist.all_reduce(h.grad)
-                                    h.grad *= self.args.world_size/r+1
-                            else:
-                                z = torch.zeros(h.shape).to(self.device)
-                                dist.all_reduce(z)
-                A_optim.step()
+                # A_optim.zero_grad()
+                # self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
+                # for r in range(1, self.args.world_size):
+                #     for n, h in self.model.named_H():
+                #         if "proj.{}".format(r) in n:
+                #             if self.args.rank <= r:
+                #                 with torch.no_grad():
+                #                     dist.all_reduce(h.grad)
+                #                     h.grad *= self.args.world_size/r+1
+                #             else:
+                #                 z = torch.zeros(h.shape).to(self.device)
+                #                 dist.all_reduce(z)
+                # A_optim.step()
 
                 W_optim.zero_grad()
                 pred, true = self._process_one_batch(train_data, trn_data)
