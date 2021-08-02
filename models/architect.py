@@ -141,8 +141,12 @@ class Architect():
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
+        print(len(HD))
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
+        print(len(d_wpos))
+        for i in d_wpos:
+            print(type(i))
         print(zero_list, zero_list2)
         dH_wpos = d_wpos[:-1]
         dD_wpos = d_wpos[-1][:, -self.args.pred_len:, :].contiguous()
