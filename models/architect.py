@@ -90,7 +90,7 @@ class Architect():
         # compute gradient
         v_H = list(self.v_net.H())
         v_W = list(self.v_net.W())
-        v_grads = torch.autograd.grad(loss, v_W + v_H)
+        v_grads = list(torch.autograd.grad(loss, v_W + v_H))
         dw = v_grads[:len(v_W)]
         dH = list(v_grads[len(v_W):])
 
@@ -105,11 +105,17 @@ class Architect():
             max_coeff[max_coeff < 1.0] = torch.tensor(1.0).cuda(args.gpu)
             hessian_clip[n] = torch.div(h, max_coeff.unsqueeze(-1))
         hessian = hessian_clip
+        zero_list = []
+        for i, (n, p) in enumerate(self.net.named_H()):
+            for k in range(0, max(self.args.rank, 1)):
+                if "proj.{}".format(k) in n:
+                    zero_list.append(i)
+        for i in zero_list:
+            dH[i] *= 0
         # update final gradient = dalpha - xi*hessian
         with torch.no_grad():
             for h, dh, he in zip(self.net.H(), dH, hessian):
                 h.grad = dh + he
-
 
     def compute_hessian(self, dw, trn_data, next_data, args):
         """

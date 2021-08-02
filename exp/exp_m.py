@@ -196,7 +196,7 @@ class Exp_M_Informer(Exp_Basic):
                 #             else:
                 #                 z = torch.zeros(h.shape).to(self.device)
                 #                 dist.all_reduce(z)
-                # A_optim.step()
+                A_optim.step()
 
                 W_optim.zero_grad()
                 pred, true = self._process_one_batch(train_data, trn_data)
