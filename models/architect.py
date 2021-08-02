@@ -110,12 +110,15 @@ class Architect():
             for k in range(0, max(self.args.rank, 1)):
                 if "proj.{}".format(k) in n:
                     zero_list.append(i)
+        print(zero_list)
         for i in zero_list:
             dH[i] *= 0
         # update final gradient = dalpha - xi*hessian
-        # with torch.no_grad():
-        #     for h, dh, he in zip(self.net.H(), dH, hessian):
-        #         h.grad = dh + he
+        with torch.no_grad():
+            for h, dh, he in zip(self.net.H(), dH, hessian):
+                h.grad = dh + he
+        for n, h in self.net.named_H():
+            print(n, h.grad)
 
     def compute_hessian(self, dw, trn_data, next_data, args):
         """
