@@ -88,7 +88,7 @@ class Informer(nn.Module):
 
     def named_H(self):
         for n, p in self.named_parameters():
-            if "proj.":
+            if "proj." in n:
                 yield n, p
 
     def A(self):

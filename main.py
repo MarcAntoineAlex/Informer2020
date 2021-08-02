@@ -95,10 +95,6 @@ def worker(gpu, ngpus_per_node, args_in):
     args.detail_freq = args.freq
     args.freq = args.freq[-1:]
 
-    o = torch.ones(2, 3).to(device)
-    dist.all_reduce(o)
-    print(o)
-    # todo delete
     Exp = Exp_M_Informer
 
     for ii in range(args.itr):

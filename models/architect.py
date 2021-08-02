@@ -133,7 +133,6 @@ class Architect():
                 if "proj.{}".format(k) in n:
                     zero_list.append(i)
 
-
         # w+ = w + eps*dw`
         with torch.no_grad():
             for p, d in zip(self.net.W(), dw):
@@ -141,7 +140,6 @@ class Architect():
         pred, true = self._process_one_batch(trn_data, self.net)
         loss = self.criterion(pred, true)
         HD = list(self.net.H())
-        print(len(HD))
         HD.append(trn_data[1])
         d_wpos = torch.autograd.grad(loss, HD)
         print(len(d_wpos))
