@@ -144,6 +144,8 @@ class Exp_M_Informer(Exp_Basic):
         vali_data, vali_loader = self._get_data(flag='val')
         next_data, next_loader = self._get_data(flag='next')
         test_data, test_loader = self._get_data(flag='test')
+        if self.args.rank == 1:
+            train_data, train_loader = self._get_data(flag='next')
 
         path = os.path.join(self.args.path, str(ii))
         try:
@@ -161,16 +163,16 @@ class Exp_M_Informer(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
-        # print("*************** {}".format(self.args.rank))
-        # print("-----W-------")
-        # for n, _ in self.model.named_W():
-        #     print(n)
-        # print("-----A-------")
-        # for n, _ in self.model.named_A():
-        #     print(n)
-        # print("-----H-------")
-        # for n, _ in self.model.named_H():
-        #     print(n)
+        print("*************** {}".format(self.args.rank))
+        print("-----W-------")
+        for n, _ in self.model.named_W():
+            print(n)
+        print("-----A-------")
+        for n, _ in self.model.named_A():
+            print(n)
+        print("-----H-------")
+        for n, _ in self.model.named_H():
+            print(n)
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
@@ -182,8 +184,8 @@ class Exp_M_Informer(Exp_Basic):
                 for i in range(len(trn_data)):
                     trn_data[i], val_data[i], next_data[i] = trn_data[i].float().to(self.device), val_data[i].float().to(self.device), next_data[i].float().to(self.device)
                 iter_count += 1
-                # A_optim.zero_grad()
-                # self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
+                A_optim.zero_grad()
+                self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
                 # for r in range(1, self.args.world_size):
                 #     for n, h in self.model.named_H():
                 #         if "proj.{}".format(r) in n:
@@ -194,7 +196,7 @@ class Exp_M_Informer(Exp_Basic):
                 #             else:
                 #                 z = torch.zeros(h.shape).to(self.device)
                 #                 dist.all_reduce(z)
-                # A_optim.step()
+                A_optim.step()
 
                 W_optim.zero_grad()
                 pred, true = self._process_one_batch(train_data, trn_data)
