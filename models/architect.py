@@ -117,6 +117,7 @@ class Architect():
         with torch.no_grad():
             for h, dh, he in zip(self.net.H(), dH, hessian):
                 h.grad = dh + he
+        w_optim.zero_grad()
         for n, h in self.net.named_H():
             print(n, h.grad)
 
