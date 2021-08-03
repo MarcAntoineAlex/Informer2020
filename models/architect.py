@@ -116,7 +116,7 @@ class Architect():
         # update final gradient = dalpha - xi*hessian
         with torch.no_grad():
             for (n, h), dh, he in zip(self.net.named_H(), dH, hessian):
-                print(n, h.grad, dh, he)
+                # print(n, h.grad, dh, he)
                 h.grad = dh + he
 
 
