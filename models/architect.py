@@ -118,8 +118,7 @@ class Architect():
             for h, dh, he in zip(self.net.H(), dH, hessian):
                 h.grad = dh + he
         w_optim.zero_grad()
-        for n, h in self.net.named_H():
-            print(n, h.grad)
+
 
     def compute_hessian(self, dw, trn_data, next_data, args):
         """
