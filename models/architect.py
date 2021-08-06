@@ -117,7 +117,8 @@ class Architect():
         with torch.no_grad():
             for (n, h), dh, he in zip(self.net.named_H(), dH, hessian):
                 h.grad = dh - xi * he
-                rate_counter.update(dh.norm().item()/he.norm().item()/xi)
+                if he.norm().item() != 0:
+                    rate_counter.update(dh.norm().item()/he.norm().item()/xi)
         return rate_counter.avg
 
     def compute_hessian(self, dw, trn_data, next_data, args):
