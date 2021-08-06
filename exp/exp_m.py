@@ -3,7 +3,7 @@ from exp.exp_basic import Exp_Basic
 from models.model import Informer, InformerStack
 from models.architect import Architect
 
-from utils.tools import EarlyStopping, adjust_learning_rate
+from utils.tools import EarlyStopping, adjust_learning_rate, AverageMeter
 from utils.metrics import metric
 
 import numpy as np
@@ -163,20 +163,12 @@ class Exp_M_Informer(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
-        print("*************** {}".format(self.args.rank))
-        print("-----W-------")
-        for n, _ in self.model.named_W():
-            print(n)
-        print("-----A-------")
-        for n, _ in self.model.named_A():
-            print(n)
-        print("-----H-------")
-        for n, _ in self.model.named_H():
-            print(n)
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
             train_loss = []
+            rate_counter = AverageMeter()
+            Ag_counter, A_counter, Wg_counter, W_counter = AverageMeter(), AverageMeter(), AverageMeter(), AverageMeter()
 
             self.model.train()
             epoch_time = time.time()
@@ -185,7 +177,8 @@ class Exp_M_Informer(Exp_Basic):
                     trn_data[i], val_data[i], next_data[i] = trn_data[i].float().to(self.device), val_data[i].float().to(self.device), next_data[i].float().to(self.device)
                 iter_count += 1
                 A_optim.zero_grad()
-                self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
+                rate = self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
+                rate_counter.update(rate)
                 for r in range(1, self.args.world_size):
                     for n, h in self.model.named_H():
                         if "proj.{}".format(r) in n:
@@ -197,11 +190,14 @@ class Exp_M_Informer(Exp_Basic):
                                 z = torch.zeros(h.shape).to(self.device)
                                 dist.all_reduce(z)
                 a_g_norm = 0
+                a_norm = 0
                 n = 0
                 for a in self.model.A():
-                    a_g_norm += torch.norm(a.grad, float('inf'))
+                    a_g_norm += a.grad.mean()
+                    a_norm += a.mean()
                     n += 1
-                logger.info('A grad norm = {}'.format(a_g_norm/n))
+                Ag_counter.update(a_g_norm/n)
+                A_counter.update(a_norm/n)
 
                 A_optim.step()
 
@@ -224,27 +220,20 @@ class Exp_M_Informer(Exp_Basic):
                     scaler.update()
                 else:
                     loss.backward()
+
                     w_g_norm = 0
+                    w_norm = 0
                     n = 0
                     for w in self.model.W():
-                        w_g_norm += torch.norm(w.grad, float('inf'))
+                        w_g_norm += w.grad.mean()
+                        w_norm += w.mean()
                         n += 1
-                    logger.info('W grad norm = {}'.format(w_g_norm / n))
+                    Wg_counter.update(w_g_norm/n)
+                    W_counter.update(w_norm/n)
+
                     W_optim.step()
 
-            A_norm = 0
-            n = 0
-            for a in self.model.A():
-                A_norm += torch.norm(a, float('inf'))
-                n += 1
-            logger.info('A norm = {}'.format(A_norm / n))
-
-            W_norm = 0
-            n = 0
-            for w in self.model.W():
-                W_norm += torch.norm(w, float('inf'))
-                n += 1
-            logger.info('W norm = {}'.format(W_norm / n))
+            logger.info("R{} Epoch: {} W:{} Wg:{} A:{} Ag:{}".format(self.args.rank, epoch+1, W_counter.avg, Wg_counter.avg, A_counter.avg, Ag_counter.avg))
 
             logger.info("R{} Epoch: {} cost time: {}".format(self.args.rank, epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)

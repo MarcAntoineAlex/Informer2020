@@ -113,10 +113,12 @@ class Architect():
         for i in zero_list:
             dH[i] *= 0
         # update final gradient = dalpha - xi*hessian
+        rate_counter = tools.AverageMeter()
         with torch.no_grad():
             for (n, h), dh, he in zip(self.net.named_H(), dH, hessian):
                 h.grad = dh - xi * he
-
+                rate_counter.update(dh.norm().item()/he.norm().item()/xi)
+        return rate_counter.avg
 
     def compute_hessian(self, dw, trn_data, next_data, args):
         """

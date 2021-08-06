@@ -5,12 +5,8 @@ import os
 import matplotlib.pyplot as plt
 from data.data_loader import Dataset_ETT_hour
 
-a = [1, 2, 3, 4, 5]
-b = [1, 2, 3, 4, 5]
-c = [1, 2, 3, 4, 5]
-d = [1, 2, 3, 4, 5]
-for (A, B), C, D in zip(zip(a, b), c, d):
-    print(A, B, C, D)
+a = torch.rand(2, 2, 3)
+print(a.mean())
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',
