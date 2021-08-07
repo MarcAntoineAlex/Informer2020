@@ -179,25 +179,25 @@ class Exp_M_Informer(Exp_Basic):
                 A_optim.zero_grad()
                 rate = self.arch.unrolled_backward(self.args, trn_data, val_data, next_data, W_optim.param_groups[0]['lr'], W_optim)
                 rate_counter.update(rate)
-                for r in range(1, self.args.world_size):
-                    for n, h in self.model.named_H():
-                        if "proj.{}".format(r) in n:
-                            if self.args.rank <= r:
-                                with torch.no_grad():
-                                    dist.all_reduce(h.grad)
-                                    h.grad *= self.args.world_size/r+1
-                            else:
-                                z = torch.zeros(h.shape).to(self.device)
-                                dist.all_reduce(z)
-                a_g_norm = 0
-                a_norm = 0
-                n = 0
-                for a in self.model.A():
-                    a_g_norm += a.grad.mean()
-                    a_norm += a.mean()
-                    n += 1
-                Ag_counter.update(a_g_norm/n)
-                A_counter.update(a_norm/n)
+                # # for r in range(1, self.args.world_size):
+                # #     for n, h in self.model.named_H():
+                # #         if "proj.{}".format(r) in n:
+                # #             if self.args.rank <= r:
+                # #                 with torch.no_grad():
+                # #                     dist.all_reduce(h.grad)
+                # #                     h.grad *= self.args.world_size/r+1
+                # #             else:
+                # #                 z = torch.zeros(h.shape).to(self.device)
+                # #                 dist.all_reduce(z)
+                # # a_g_norm = 0
+                # # a_norm = 0
+                # # n = 0
+                # # for a in self.model.A():
+                # #     a_g_norm += a.grad.mean()
+                # #     a_norm += a.mean()
+                # #     n += 1
+                # Ag_counter.update(a_g_norm/n)
+                # A_counter.update(a_norm/n)
 
                 A_optim.step()
 

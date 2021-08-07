@@ -116,7 +116,7 @@ class Architect():
         rate_counter = tools.AverageMeter()
         with torch.no_grad():
             for (n, h), dh, he in zip(self.net.named_H(), dH, hessian):
-                h.grad = 0
+                # h.grad = dh - xi * he
                 if he.norm().item() != 0 :
                     rate_counter.update(dh.norm().item()/he.norm().item()/xi)
         return rate_counter.avg
