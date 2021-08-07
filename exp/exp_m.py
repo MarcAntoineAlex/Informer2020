@@ -233,7 +233,8 @@ class Exp_M_Informer(Exp_Basic):
 
                     W_optim.step()
 
-            logger.info("R{} Epoch: {} W:{} Wg:{} A:{} Ag:{}".format(self.args.rank, epoch+1, W_counter.avg, Wg_counter.avg, A_counter.avg, Ag_counter.avg))
+            logger.info("R{} Epoch: {} W:{} Wg:{} A:{} Ag:{} rate{}".format(self.args.rank, epoch+1, W_counter.avg, Wg_counter.avg,
+                                                                            A_counter.avg, Ag_counter.avg, rate_counter.avg))
 
             logger.info("R{} Epoch: {} cost time: {}".format(self.args.rank, epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
