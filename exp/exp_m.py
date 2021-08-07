@@ -189,9 +189,9 @@ class Exp_M_Informer(Exp_Basic):
                 #             else:
                 #                 z = torch.zeros(h.shape).to(self.device)
                 #                 dist.all_reduce(z)
-                # for a in self.model.A():
-                #     with torch.no_grad():
-                #         dist.all_reduce(a.grad)
+                for a in self.model.A():
+                    with torch.no_grad():
+                        dist.all_reduce(a.grad)
                 a_g_norm = 0
                 a_norm = 0
                 n = 0
