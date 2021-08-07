@@ -145,7 +145,7 @@ class Exp_M_Informer(Exp_Basic):
         next_data, next_loader = self._get_data(flag='train')
         test_data, test_loader = self._get_data(flag='test')
         if self.args.rank == 1:
-            train_data, train_loader = self._get_data(flag='next')
+            train_data, train_loader = self._get_data(flag='train')
 
         path = os.path.join(self.args.path, str(ii))
         try:
