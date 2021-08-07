@@ -142,7 +142,7 @@ class Exp_M_Informer(Exp_Basic):
     def train(self, ii, logger):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
-        next_data, next_loader = self._get_data(flag='next')
+        next_data, next_loader = self._get_data(flag='train')
         test_data, test_loader = self._get_data(flag='test')
         if self.args.rank == 1:
             train_data, train_loader = self._get_data(flag='next')
