@@ -4,9 +4,12 @@ import torch.nn.functional as F
 import os
 import matplotlib.pyplot as plt
 from data.data_loader import Dataset_ETT_hour
-
-a = torch.rand(2, 2, 3)
-print(a.mean())
+import time
+a = []
+a.append(None)
+a = torch.ones(3, 4, 5)
+b = torch.zeros(3, 4, 1).bool()
+print(torch.masked_select(a, b))
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',

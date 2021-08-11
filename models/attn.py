@@ -36,27 +36,50 @@ class FullAttention(nn.Module):
             return (V.contiguous(), None)
 
 class ProbAttention(nn.Module):
-    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False, use_cho=False, d_model=None, L_K=None):
         super(ProbAttention, self).__init__()
         self.factor = factor
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
-        # self.choice = None
+        self.use_cho = use_cho
+        if self.use_cho:
+            self.choice = nn.Sequential(nn.Linear(d_model, L_K),
+                                        nn.Softmax())
+
+    def choose(self, Q, sample_k, K_expand):
+        B, H, L_Q, D = Q.shape
+        _, _, L_Q, L_K, E = K_expand.shape
+        C = self.choice(Q)
+        S = torch.sort(C)
+        mask = torch.relu(C - S[:, :, :, -sample_k])
+        K_masked = K_expand * mask.unsqueeze(-1)
+        result = torch.matmul(Q.unsqueeze(-2), K_masked.transpose(-2, -1)).squeeze()
+        target = torch.matmul(Q.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()
+        M_result = torch.log(torch.exp(torch.div(result, D ** 0.5)).sum(-1)) - torch.div(result, D ** 0.5).sum(-1) / L_K
+        M_target = torch.log(torch.exp(torch.div(target, D ** 0.5)).sum(-1)) - torch.div(target, D ** 0.5).sum(-1) / L_K
+        loss_func = nn.MSELoss()
+        loss = loss_func(M_result, M_target)
+        return loss
 
     def _prob_QK(self, Q, K, sample_k, n_top): # n_top: c*ln(L_q)
         # Q [B, H, L, D]
         B, H, L_K, E = K.shape
         _, _, L_Q, D = Q.shape
 
-        # if self.choice is None:
-        #     self.choice = nn.Sequential(nn.Linear(D, L_K), nn.Softmax(L_K))
+        loss = None
         # calculate the sampled Q_K
         K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
-        # index_sample = torch.topk(self.choice(Q),sample_k)[1]
-        index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
-        K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
+        if self.use_cho:
+            loss = self.choose(Q, sample_k, K_expand)
+            C = self.choice(Q)
+            S = torch.sort(C)
+            mask = torch.relu(C-S[:, :, :, -sample_k]).bool()
+            K_sample = torch.masked_select(K_expand, mask.unsqueeze(-1)).reshape(B, H, L_Q, sample_k, E)
+        else:
+            index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
+            K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
         Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()  # Q [B, H, Lq, 1, E] * K [B, H, Lq, E, ln(Lk)]
                                                                                           # = [B, H, Lq, 1, ln(Lk)]
 
@@ -71,7 +94,7 @@ class ProbAttention(nn.Module):
                      M_top, :] # factor*ln(L_q)
         Q_K = torch.matmul(Q_reduce, K.transpose(-2, -1)) # factor*ln(L_q)*L_k
 
-        return Q_K, M_top
+        return Q_K, M_top, loss
 
     def _get_initial_context(self, V, L_Q):
         B, H, L_V, D = V.shape
@@ -116,8 +139,8 @@ class ProbAttention(nn.Module):
 
         U_part = U_part if U_part<L_K else L_K
         u = u if u<L_Q else L_Q
-        
-        scores_top, index = self._prob_QK(queries, keys, sample_k=U_part, n_top=u) 
+
+        scores_top, index, loss = self._prob_QK(queries, keys, sample_k=U_part, n_top=u)
 
         # add scale factor
         scale = self.scale or 1./sqrt(D)
@@ -127,8 +150,8 @@ class ProbAttention(nn.Module):
         context = self._get_initial_context(values, L_Q)
         # update the context with selected top_k queries
         context, attn = self._update_context(context, values, scores_top, index, L_Q, attn_mask)
-        
-        return context.transpose(2,1).contiguous(), attn
+
+        return context.transpose(2, 1).contiguous(), attn, loss
 
 
 class AttentionLayer(nn.Module):
@@ -179,14 +202,15 @@ class AttentionLayer(nn.Module):
             keys = self.key_projection(keys).view(B, S, H, -1)
             values = self.value_projection(values).view(B, S, H, -1)
 
-        out, attn = self.inner_attention(
+        out, attn, loss = self.inner_attention(
             queries,
             keys,
             values,
             attn_mask
         )
+
         if self.mix:
             out = out.transpose(2,1).contiguous()
         out = out.view(B, L, -1)
 
-        return self.out_projection(out), attn
+        return self.out_projection(out), attn, loss

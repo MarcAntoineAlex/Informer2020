@@ -40,7 +40,7 @@ class EncoderLayer(nn.Module):
         #     x, x, x,
         #     attn_mask = attn_mask
         # ))
-        new_x, attn = self.attention(
+        new_x, attn, loss = self.attention(
             x, x, x,
             attn_mask = attn_mask
         )
@@ -50,7 +50,7 @@ class EncoderLayer(nn.Module):
         y = self.dropout(self.activation(self.conv1(y.transpose(-1,1))))
         y = self.dropout(self.conv2(y).transpose(-1,1))
 
-        return self.norm2(x+y), attn
+        return self.norm2(x+y), attn, loss
 
 
 class Encoder(nn.Module):
@@ -63,22 +63,25 @@ class Encoder(nn.Module):
     def forward(self, x, attn_mask=None):
         # x [B, L, D]
         attns = []
+        losses = []
         if self.conv_layers is not None:
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x, attn, loss = attn_layer(x, attn_mask=attn_mask)
+                losses.append(loss)
                 x = conv_layer(x)
                 attns.append(attn)
             x, attn = self.attn_layers[-1](x)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
-                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x, attn, loss = attn_layer(x, attn_mask=attn_mask)
+                losses.append(loss)
                 attns.append(attn)
 
         if self.norm is not None:
             x = self.norm(x)
 
-        return x, attns
+        return x, attns, losses
 
 
 

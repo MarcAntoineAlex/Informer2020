@@ -14,12 +14,13 @@ class Informer(nn.Module):
                  factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512,
                  dropout=0.0, attn='prob', embed='fixed', freq='h', activation='gelu',
                  output_attention=False, distil=True, mix=True,
-                 device=torch.device('cuda:0'), args=None):
+                 device=torch.device('cuda:0'), args=None, use_cho=False):
         super(Informer, self).__init__()
         self.pred_len = out_len
         self.attn = attn
         self.output_attention = output_attention
         self.args = args
+        self.use_cho = use_cho
         # Encoding
         self.enc_embedding = DataEmbedding(enc_in, d_model, embed, freq, dropout)
         self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout)
@@ -29,7 +30,7 @@ class Informer(nn.Module):
         self.encoder = Encoder(
             [
                 EncoderLayer(
-                    AttentionLayer(Attn(False, factor, attention_dropout=dropout, output_attention=output_attention),
+                    AttentionLayer(Attn(False, factor, attention_dropout=dropout, output_attention=output_attention, use_cho=self.use_cho),
                                    d_model, n_heads, mix=False, args=self.args),
                     d_model,
                     d_ff,
@@ -48,7 +49,7 @@ class Informer(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayer(
-                    AttentionLayer(Attn(True, factor, attention_dropout=dropout, output_attention=False),
+                    AttentionLayer(Attn(True, factor, attention_dropout=dropout, output_attention=False, use_cho=self.use_cho),
                                    d_model, n_heads, mix=mix, args=self.args),
                     AttentionLayer(FullAttention(False, factor, attention_dropout=dropout, output_attention=False),
                                    d_model, n_heads, mix=False, args=self.args),
@@ -68,18 +69,21 @@ class Informer(nn.Module):
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
-        enc_out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
+        enc_out, attns, losses_enc = self.encoder(enc_out, attn_mask=enc_self_mask)
 
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
-        dec_out = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
+        dec_out, losses_dec = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
         dec_out = self.projection(dec_out)
 
+        loss_sum = 0
+        if self.use_cho:
+            loss_sum = torch.tensor(losses_dec).sum() + torch.tensor(losses_enc).sum()
         # dec_out = self.end_conv1(dec_out)
         # dec_out = self.end_conv2(dec_out.transpose(2,1)).transpose(1,2)
         if self.output_attention:
-            return dec_out[:, -self.pred_len:, :], attns
+            return dec_out[:, -self.pred_len:, :], attns, loss_sum
         else:
-            return dec_out[:, -self.pred_len:, :]  # [B, L, D]
+            return dec_out[:, -self.pred_len:, :], loss_sum  # [B, L, D]
 
     def H(self):
         for n, p in self.named_parameters():
