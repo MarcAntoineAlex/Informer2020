@@ -184,6 +184,7 @@ class AttentionLayer(nn.Module):
             self.out_projection.append(nn.Linear(total - L_A, d_model))
             for i in range(self.args.world_size-1):
                 self.out_projection.append(nn.Linear(L_A // w_minus_1, d_model))
+            print("TOTAL", total)
 
         else:
             self.query_projection = nn.Linear(d_model, d_keys * n_heads)
@@ -218,6 +219,7 @@ class AttentionLayer(nn.Module):
         if self.mix:
             out = out.transpose(2,1).contiguous()
         out = out.view(B, L, -1)
+        print(out.shape, "OUT SHAPE")
 
         if self.args is not None:
             w_minus_1 = self.args.world_size - 1
