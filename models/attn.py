@@ -35,6 +35,7 @@ class FullAttention(nn.Module):
         else:
             return (V.contiguous(), None)
 
+
 class ProbAttention(nn.Module):
     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False, use_cho=False, d_model=None, L_K=None):
         super(ProbAttention, self).__init__()
@@ -179,12 +180,16 @@ class AttentionLayer(nn.Module):
                 self.q_proj.append(nn.Linear(d_model, L_A // w_minus_1))
                 self.k_proj.append(nn.Linear(d_model, L_A // w_minus_1))
                 self.v_proj.append(nn.Linear(d_model, L_A // w_minus_1))
+            self.out_projection = nn.ModuleList()
+            self.out_projection.append(nn.Linear(total - L_A, d_model))
+            for i in range(self.args.world_size-1):
+                self.out_projection.append(nn.Linear(L_A // w_minus_1))
 
         else:
             self.query_projection = nn.Linear(d_model, d_keys * n_heads)
             self.key_projection = nn.Linear(d_model, d_keys * n_heads)
             self.value_projection = nn.Linear(d_model, d_values * n_heads)
-        self.out_projection = nn.Linear(d_values * n_heads, d_model)
+            self.out_projection = nn.Linear(d_values * n_heads, d_model)
         self.n_heads = n_heads
         self.mix = mix
 
@@ -202,6 +207,7 @@ class AttentionLayer(nn.Module):
             keys = self.key_projection(keys).view(B, S, H, -1)
             values = self.value_projection(values).view(B, S, H, -1)
 
+        d_model = queries.shape[-1]
         out, attn, loss = self.inner_attention(
             queries,
             keys,
@@ -213,4 +219,12 @@ class AttentionLayer(nn.Module):
             out = out.transpose(2,1).contiguous()
         out = out.view(B, L, -1)
 
-        return self.out_projection(out), attn, loss
+        if self.args is not None:
+            w_minus_1 = self.args.world_size - 1
+            L_A = int((d_model * self.args.ratio // w_minus_1) * w_minus_1)
+            result = self.out_projection[0](out[:, :, d_model-L_A])
+            for i in range(1, self.args.world_size):
+                result += self.out_projection[i](out[:, :, L_A//w_minus_1])
+            return result, attn, loss
+        else:
+            return self.out_projection(out), attn, loss

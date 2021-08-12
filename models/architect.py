@@ -95,7 +95,6 @@ class Architect():
         dH = list(v_grads[len(v_W):])
 
         hessian = self.compute_hessian(dw, trn_data, next_data, args)
-        # logger.info("R{} check 5".format(rank))
         # clipping hessian
         max_norm = float(args.max_hessian_grad_norm)
         hessian_clip = copy.deepcopy(hessian)
@@ -220,12 +219,12 @@ class Architect():
                 if self.args.output_attention:
                     outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
                 else:
-                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
         else:
             if self.args.output_attention:
                 outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
             else:
-                outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
         if self.args.inverse:
             outputs = self.inverse_transform(outputs)
         f_dim = -1 if self.args.features == 'MS' else 0

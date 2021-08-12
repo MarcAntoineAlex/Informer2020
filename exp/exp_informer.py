@@ -50,7 +50,8 @@ class Exp_Informer(Exp_Basic):
                 self.args.output_attention,
                 self.args.distil,
                 self.args.mix,
-                self.device
+                self.device,
+                use_cho=True
             ).float()
         
         if self.args.use_multi_gpu and self.args.use_gpu:
