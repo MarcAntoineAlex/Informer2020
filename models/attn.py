@@ -224,9 +224,9 @@ class AttentionLayer(nn.Module):
         if self.args is not None:
             w_minus_1 = self.args.world_size - 1
             L_A = int((d_model * self.args.ratio // w_minus_1) * w_minus_1)
-            result = self.out_projection[0](out[:, :, d_model-L_A])
+            result = self.out_projection[0](out[:, :, :d_model-L_A])
             for i in range(1, self.args.world_size):
-                result += self.out_projection[i](out[:, :, L_A//w_minus_1])
+                result += self.out_projection[i](out[:, :, d_model - L_A:])
             return result, attn, loss
         else:
             return self.out_projection(out), attn, loss
