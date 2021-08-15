@@ -52,6 +52,7 @@ class ProbAttention(nn.Module):
     def choose(self, Q, sample_k, K_expand):
         B, H, L_Q, D = Q.shape
         _, _, L_Q, L_K, E = K_expand.shape
+        print(Q.shape)
         C = self.choice(Q)
         S = torch.sort(C)
         mask = torch.relu(C - S[:, :, :, -sample_k])
