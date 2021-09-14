@@ -66,6 +66,7 @@ class ProbAttention(nn.Module):
         B, H, L_Q, D = Q.shape
         _, _, L_Q, L_K, E = K_expand.shape
         Q_mean = Q.mean(dim=-2)
+        print(Q_mean.unsqueeze(-2).shape, K_expand.transpose(-2, -1).shape)
         S = torch.matmul(Q_mean.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()  # S = [B, H, L_K]
         return S
 
