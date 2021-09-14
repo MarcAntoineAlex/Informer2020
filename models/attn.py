@@ -50,20 +50,25 @@ class ProbAttention(nn.Module):
                                         nn.Softmax())
 
     def choose(self, Q, sample_k, K_expand):
+        # B, H, L_Q, D = Q.shape
+        # _, _, L_Q, L_K, E = K_expand.shape
+        # C = self.choice(Q)
+        # S = torch.sort(C)
+        # mask = torch.relu(C - S[:, :, :, -sample_k])
+        # K_masked = K_expand * mask.unsqueeze(-1)
+        # result = torch.matmul(Q.unsqueeze(-2), K_masked.transpose(-2, -1)).squeeze()
+        # target = torch.matmul(Q.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()
+        # M_result = torch.log(torch.exp(torch.div(result, D ** 0.5)).sum(-1)) - torch.div(result, D ** 0.5).sum(-1) / L_K
+        # M_target = torch.log(torch.exp(torch.div(target, D ** 0.5)).sum(-1)) - torch.div(target, D ** 0.5).sum(-1) / L_K
+        # loss_func = nn.MSELoss()
+        # loss = loss_func(M_result, M_target)
+        # return loss
         B, H, L_Q, D = Q.shape
         _, _, L_Q, L_K, E = K_expand.shape
-        print(Q.shape)
-        C = self.choice(Q)
-        S = torch.sort(C)
-        mask = torch.relu(C - S[:, :, :, -sample_k])
-        K_masked = K_expand * mask.unsqueeze(-1)
-        result = torch.matmul(Q.unsqueeze(-2), K_masked.transpose(-2, -1)).squeeze()
-        target = torch.matmul(Q.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()
-        M_result = torch.log(torch.exp(torch.div(result, D ** 0.5)).sum(-1)) - torch.div(result, D ** 0.5).sum(-1) / L_K
-        M_target = torch.log(torch.exp(torch.div(target, D ** 0.5)).sum(-1)) - torch.div(target, D ** 0.5).sum(-1) / L_K
-        loss_func = nn.MSELoss()
-        loss = loss_func(M_result, M_target)
-        return loss
+        Q_mean = Q.mean(dim=-2)
+        S = torch.matmul(Q_mean.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()  # S = [B, H, L_K]
+        return S
+
 
     def _prob_QK(self, Q, K, sample_k, n_top): # n_top: c*ln(L_q)
         # Q [B, H, L, D]
@@ -74,11 +79,16 @@ class ProbAttention(nn.Module):
         # calculate the sampled Q_K
         K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
         if self.use_cho:
-            loss = self.choose(Q, sample_k, K_expand)
-            C = self.choice(Q)
-            S = torch.sort(C)
-            mask = torch.relu(C-S[:, :, :, -sample_k]).bool()
-            K_sample = torch.masked_select(K_expand, mask.unsqueeze(-1)).reshape(B, H, L_Q, sample_k, E)
+            # loss = self.choose(Q, sample_k, K_expand)
+            # C = self.choice(Q)
+            # S = torch.sort(C)
+            # mask = torch.relu(C-S[:, :, :, -sample_k]).bool()
+            # K_sample = torch.masked_select(K_expand, mask.unsqueeze(-1)).reshape(B, H, L_Q, sample_k, E)
+            S = self.choose(Q, sample_k, K_expand)
+            K_sample = K_expand[torch.arange(B)[:, None, None, None],
+                                torch.arange(H)[None, :, None, None],
+                                torch.arange(L_Q)[None, :, None, None],
+                                S, :]
         else:
             index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
             K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
