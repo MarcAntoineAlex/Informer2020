@@ -70,7 +70,7 @@ class Encoder(nn.Module):
                 losses.append(loss)
                 x = conv_layer(x)
                 attns.append(attn)
-            x, attn = self.attn_layers[-1](x)
+            x, attn, _ = self.attn_layers[-1](x)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
