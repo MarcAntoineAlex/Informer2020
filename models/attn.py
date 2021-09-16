@@ -222,12 +222,18 @@ class AttentionLayer(nn.Module):
             values = self.value_projection(values).view(B, S, H, -1)
 
         d_model = queries.shape[-1]
-        out, attn, loss = self.inner_attention(
+        attn_out = self.inner_attention(
             queries,
             keys,
             values,
             attn_mask
         )
+        out = attn_out[0]
+        attn = attn_out[1]
+        if type(self.inner_attention) == ProbAttention:
+            loss = attn_out[2]
+        else:
+            loss = None
 
         if self.mix:
             out = out.transpose(2,1).contiguous()
