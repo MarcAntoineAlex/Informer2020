@@ -320,5 +320,5 @@ class Exp_Informer(Exp_Basic):
             for i in range(1, self.args.pred_len):
                 outputs[:, i, :] += outputs[:, i-1, :]
                 batch_y[:, i, :] += batch_y[:, i - 1, :]
-        print(batch_y-origin_y[:, -self.args.pred_len:, f_dim].to(self.device))
+        print(batch_y-origin_y[:, -self.args.pred_len:, f_dim:].to(self.device))
         return outputs, batch_y
