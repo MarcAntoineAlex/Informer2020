@@ -7,6 +7,7 @@ import numpy as np
 from math import sqrt
 from utils.masking import TriangularCausalMask, ProbMask
 
+
 class FullAttention(nn.Module):
     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
         super(FullAttention, self).__init__()
@@ -37,70 +38,28 @@ class FullAttention(nn.Module):
 
 
 class ProbAttention(nn.Module):
-    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False, use_cho=False, d_model=None, L_K=None):
+    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
         super(ProbAttention, self).__init__()
         self.factor = factor
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
-        self.use_cho = use_cho
-        if self.use_cho:
-            self.choice = nn.Sequential(nn.Linear(d_model, L_K),
-                                        nn.Softmax())
-
-    def choose(self, Q, sample_k, K_expand):
-        # B, H, L_Q, D = Q.shape
-        # _, _, L_Q, L_K, E = K_expand.shape
-        # C = self.choice(Q)
-        # S = torch.sort(C)
-        # mask = torch.relu(C - S[:, :, :, -sample_k])
-        # K_masked = K_expand * mask.unsqueeze(-1)
-        # result = torch.matmul(Q.unsqueeze(-2), K_masked.transpose(-2, -1)).squeeze()
-        # target = torch.matmul(Q.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()
-        # M_result = torch.log(torch.exp(torch.div(result, D ** 0.5)).sum(-1)) - torch.div(result, D ** 0.5).sum(-1) / L_K
-        # M_target = torch.log(torch.exp(torch.div(target, D ** 0.5)).sum(-1)) - torch.div(target, D ** 0.5).sum(-1) / L_K
-        # loss_func = nn.MSELoss()
-        # loss = loss_func(M_result, M_target)
-        # return loss
-        B, H, L_Q, D = Q.shape
-        _, _, L_Q, L_K, E = K_expand.shape
-        Q_mean = Q.mean(dim=-2)
-        print(Q_mean.unsqueeze(-2).shape, K_expand.transpose(-2, -1).shape)
-        S = torch.matmul(Q_mean.unsqueeze(-2), K_expand.transpose(-2, -1)).squeeze()  # S = [B, H, L_K]
-        return S
-
 
     def _prob_QK(self, Q, K, sample_k, n_top): # n_top: c*ln(L_q)
         # Q [B, H, L, D]
         B, H, L_K, E = K.shape
-        _, _, L_Q, D = Q.shape
+        _, _, L_Q, _ = Q.shape
 
-        loss = None
         # calculate the sampled Q_K
         K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
-        if self.use_cho:
-            # loss = self.choose(Q, sample_k, K_expand)
-            # C = self.choice(Q)
-            # S = torch.sort(C)
-            # mask = torch.relu(C-S[:, :, :, -sample_k]).bool()
-            # K_sample = torch.masked_select(K_expand, mask.unsqueeze(-1)).reshape(B, H, L_Q, sample_k, E)
-            S = self.choose(Q, sample_k, K_expand)
-            K_sample = K_expand[torch.arange(B)[:, None, None, None],
-                                torch.arange(H)[None, :, None, None],
-                                torch.arange(L_Q)[None, :, None, None],
-                                S, :]
-        else:
-            index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
-            K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
-        Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()  # Q [B, H, Lq, 1, E] * K [B, H, Lq, E, ln(Lk)]
-                                                                                          # = [B, H, Lq, 1, ln(Lk)]
-
+        index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
+        K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
+        Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()
 
         # find the Top_k query with sparisty measurement
-        # M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)  # M [B, H, Lq]
-        M = torch.log(torch.exp(torch.div(Q_K_sample, D**0.5)).sum(-1)) - torch.div(Q_K_sample, D**0.5).sum(-1)/L_K
-        M_top = M.topk(n_top, sorted=False)[1]  # M_top [B, H, ln(Lq)] （indice）
+        M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)
+        M_top = M.topk(n_top, sorted=False)[1]
 
         # use the reduced Q to calculate Q_K
         Q_reduce = Q[torch.arange(B)[:, None, None],
@@ -108,7 +67,7 @@ class ProbAttention(nn.Module):
                      M_top, :] # factor*ln(L_q)
         Q_K = torch.matmul(Q_reduce, K.transpose(-2, -1)) # factor*ln(L_q)*L_k
 
-        return Q_K, M_top, loss
+        return Q_K, M_top
 
     def _get_initial_context(self, V, L_Q):
         B, H, L_V, D = V.shape
@@ -154,7 +113,7 @@ class ProbAttention(nn.Module):
         U_part = U_part if U_part<L_K else L_K
         u = u if u<L_Q else L_Q
 
-        scores_top, index, loss = self._prob_QK(queries, keys, sample_k=U_part, n_top=u)
+        scores_top, index = self._prob_QK(queries, keys, sample_k=U_part, n_top=u)
 
         # add scale factor
         scale = self.scale or 1./sqrt(D)
@@ -165,45 +124,22 @@ class ProbAttention(nn.Module):
         # update the context with selected top_k queries
         context, attn = self._update_context(context, values, scores_top, index, L_Q, attn_mask)
 
-        return context.transpose(2, 1).contiguous(), attn, loss
+        return context.transpose(2,1).contiguous(), attn
 
 
 class AttentionLayer(nn.Module):
     def __init__(self, attention, d_model, n_heads, 
-                 d_keys=None, d_values=None, mix=False, args=None):
+                 d_keys=None, d_values=None, mix=False):
         super(AttentionLayer, self).__init__()
 
         d_keys = d_keys or (d_model//n_heads)
         d_values = d_values or (d_model//n_heads)
 
         self.inner_attention = attention
-        self.args = args
-        if args is not None:
-            self.q_proj = nn.ModuleList()
-            self.k_proj = nn.ModuleList()
-            self.v_proj = nn.ModuleList()
-            total = d_keys * n_heads
-            w_minus_1 = self.args.world_size - 1
-            L_A = int((d_keys * n_heads * self.args.ratio // w_minus_1) * w_minus_1)
-            print(L_A)
-            self.q_proj.append(nn.Linear(d_model, total - L_A))
-            self.k_proj.append(nn.Linear(d_model, total - L_A))
-            self.v_proj.append(nn.Linear(d_model, total - L_A))
-            for i in range(self.args.world_size-1):
-                self.q_proj.append(nn.Linear(d_model, L_A // w_minus_1))
-                self.k_proj.append(nn.Linear(d_model, L_A // w_minus_1))
-                self.v_proj.append(nn.Linear(d_model, L_A // w_minus_1))
-            self.out_projection = nn.ModuleList()
-            self.out_projection.append(nn.Linear(total - L_A, d_model))
-            for i in range(self.args.world_size-1):
-                self.out_projection.append(nn.Linear(L_A // w_minus_1, d_model))
-            print("TOTAL", total)
-
-        else:
-            self.query_projection = nn.Linear(d_model, d_keys * n_heads)
-            self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-            self.value_projection = nn.Linear(d_model, d_values * n_heads)
-            self.out_projection = nn.Linear(d_values * n_heads, d_model)
+        self.query_projection = nn.Linear(d_model, d_keys * n_heads)
+        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
+        self.value_projection = nn.Linear(d_model, d_values * n_heads)
+        self.out_projection = nn.Linear(d_values * n_heads, d_model)
         self.n_heads = n_heads
         self.mix = mix
 
@@ -212,40 +148,18 @@ class AttentionLayer(nn.Module):
         _, S, _ = keys.shape
         H = self.n_heads
 
-        if self.args is not None:
-            queries = torch.cat([q(queries) for q in self.q_proj], dim=-1).view(B, L, H, -1)
-            keys = torch.cat([k(keys) for k in self.k_proj], dim=-1).view(B, S, H, -1)
-            values = torch.cat([v(values) for v in self.v_proj], dim=-1).view(B, S, H, -1)
-        else:
-            queries = self.query_projection(queries).view(B, L, H, -1)
-            keys = self.key_projection(keys).view(B, S, H, -1)
-            values = self.value_projection(values).view(B, S, H, -1)
+        queries = self.query_projection(queries).view(B, L, H, -1)
+        keys = self.key_projection(keys).view(B, S, H, -1)
+        values = self.value_projection(values).view(B, S, H, -1)
 
-        d_model = queries.shape[-1]
-        attn_out = self.inner_attention(
+        out, attn = self.inner_attention(
             queries,
             keys,
             values,
             attn_mask
         )
-        out = attn_out[0]
-        attn = attn_out[1]
-        if type(self.inner_attention) == ProbAttention:
-            loss = attn_out[2]
-        else:
-            loss = None
-
         if self.mix:
             out = out.transpose(2,1).contiguous()
         out = out.view(B, L, -1)
-        print(out.shape, "OUT SHAPE")
 
-        if self.args is not None:
-            w_minus_1 = self.args.world_size - 1
-            L_A = int((d_model * self.args.ratio // w_minus_1) * w_minus_1)
-            result = self.out_projection[0](out[:, :, :d_model-L_A])
-            for i in range(1, self.args.world_size):
-                result += self.out_projection[i](out[:, :, d_model - L_A:])
-            return result, attn, loss
-        else:
-            return self.out_projection(out), attn, loss
+        return self.out_projection(out), attn

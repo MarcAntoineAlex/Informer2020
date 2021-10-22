@@ -5,10 +5,11 @@ import torch.nn.functional as F
 class ConvLayer(nn.Module):
     def __init__(self, c_in):
         super(ConvLayer, self).__init__()
+        padding = 1 if torch.__version__>='1.5.0' else 2
         self.downConv = nn.Conv1d(in_channels=c_in,
                                   out_channels=c_in,
                                   kernel_size=3,
-                                  padding=2,
+                                  padding=padding,
                                   padding_mode='circular')
         self.norm = nn.BatchNorm1d(c_in)
         self.activation = nn.ELU()
@@ -40,7 +41,7 @@ class EncoderLayer(nn.Module):
         #     x, x, x,
         #     attn_mask = attn_mask
         # ))
-        new_x, attn, loss = self.attention(
+        new_x, attn = self.attention(
             x, x, x,
             attn_mask = attn_mask
         )
@@ -50,8 +51,7 @@ class EncoderLayer(nn.Module):
         y = self.dropout(self.activation(self.conv1(y.transpose(-1,1))))
         y = self.dropout(self.conv2(y).transpose(-1,1))
 
-        return self.norm2(x+y), attn, loss
-
+        return self.norm2(x+y), attn
 
 class Encoder(nn.Module):
     def __init__(self, attn_layers, conv_layers=None, norm_layer=None):
@@ -63,27 +63,22 @@ class Encoder(nn.Module):
     def forward(self, x, attn_mask=None):
         # x [B, L, D]
         attns = []
-        losses = []
         if self.conv_layers is not None:
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn, loss = attn_layer(x, attn_mask=attn_mask)
-                losses.append(loss)
+                x, attn = attn_layer(x, attn_mask=attn_mask)
                 x = conv_layer(x)
                 attns.append(attn)
-            x, attn, _ = self.attn_layers[-1](x)
+            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
-                x, attn, loss = attn_layer(x, attn_mask=attn_mask)
-                losses.append(loss)
+                x, attn = attn_layer(x, attn_mask=attn_mask)
                 attns.append(attn)
 
         if self.norm is not None:
             x = self.norm(x)
 
-        return x, attns, losses
-
-
+        return x, attns
 
 class EncoderStack(nn.Module):
     def __init__(self, encoders, inp_lens):
