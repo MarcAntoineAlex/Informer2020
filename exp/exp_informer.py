@@ -292,3 +292,31 @@ class Exp_Informer(Exp_Basic):
         batch_y = batch_y[:,-self.args.pred_len:,f_dim:].to(self.device)
 
         return outputs, batch_y
+
+    def _process_one_batch_origin(self, dataset_object, batch_x, batch_y, batch_x_mark, batch_y_mark):
+        y1 = batch_y[:, -self.args.pred_len, :]
+        batch_x = batch_x.float().to(self.device)
+        mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
+        batch_x -= mx
+        batch_y = batch_y.float()
+        my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
+        batch_y -= my
+
+
+        batch_x_mark = batch_x_mark.float().to(self.device)
+        batch_y_mark = batch_y_mark.float().to(self.device)
+
+        # decoder input
+        dec_inp = torch.zeros([batch_y.shape[0], self.args.pred_len, batch_y.shape[-1]]).float()
+        dec_inp = torch.cat([batch_y[:,:self.args.label_len,:], dec_inp], dim=1).float().to(self.device)
+        # encoder - decoder
+        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+        f_dim = -1 if self.args.features == 'MS' else 0
+        batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+        with torch.no_grad():
+            outputs[:, 0, :] = y1
+            batch_y[:, 0, :] = y1
+            for i in range(1, self.args.pred_len):
+                outputs[:, i, :] += outputs[:, i-1, :]
+                batch_y[:, i, :] += batch_y[:, i - 1, :]
+        return outputs, batch_y

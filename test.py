@@ -8,7 +8,9 @@ import time
 
 a = torch.ones(3, 4, 5)
 b = torch.zeros(3, 4, 5)
-print(torch.cat([a, b], dim=-1).shape)
+a[:, 1, :] += a[:, 0, :]
+a[:, 2, :] = a[:, 1, :]
+print(a)
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',
