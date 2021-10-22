@@ -299,7 +299,7 @@ class Exp_Informer(Exp_Basic):
         mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
         batch_x -= mx
         batch_y = batch_y.float()
-        origin_y = batch_y.copy()
+        origin_y = batch_y.detach()
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
 
