@@ -259,10 +259,10 @@ class Exp_Informer(Exp_Basic):
     def _process_one_batch(self, dataset_object, batch_x, batch_y, batch_x_mark, batch_y_mark):
         batch_x = batch_x.float().to(self.device)
         print("BEFORE", batch_x[0], batch_y[0])
-        mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, 1:, :]], dim=1)
+        mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
         batch_x -= mx
         batch_y = batch_y.float()
-        my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, 1:, :]], dim=1)
+        my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
         print("AFTER", batch_x[0], batch_y[0])
 
