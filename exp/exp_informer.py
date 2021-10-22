@@ -299,6 +299,7 @@ class Exp_Informer(Exp_Basic):
         mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
         batch_x -= mx
         batch_y = batch_y.float()
+        origin_y = batch_y.copy()
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
 
@@ -312,11 +313,11 @@ class Exp_Informer(Exp_Basic):
         # encoder - decoder
         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
         f_dim = -1 if self.args.features == 'MS' else 0
-        batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+        batch_y = origin_y[:, -self.args.pred_len:, f_dim:].to(self.device)
         with torch.no_grad():
             outputs[:, 0, :] = y1
-            batch_y[:, 0, :] = y1
+            # batch_y[:, 0, :] = y1
             for i in range(1, self.args.pred_len):
                 outputs[:, i, :] += outputs[:, i-1, :]
-                batch_y[:, i, :] += batch_y[:, i - 1, :]
+                # batch_y[:, i, :] += batch_y[:, i - 1, :]
         return outputs, batch_y
