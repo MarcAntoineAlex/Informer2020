@@ -303,8 +303,9 @@ class Exp_Informer(Exp_Basic):
         # print(batch_y)
         origin_y = batch_y[:, -self.args.pred_len:, :].detach()
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
+        print("002", batch_y)
         batch_y -= my
-        # print(batch_y)
+        print("001", batch_y)
 
 
         batch_x_mark = batch_x_mark.float().to(self.device)
