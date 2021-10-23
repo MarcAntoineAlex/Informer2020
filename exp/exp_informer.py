@@ -298,10 +298,11 @@ class Exp_Informer(Exp_Basic):
         batch_x = batch_x.float().to(self.device)
         mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
         batch_x -= mx
+
         batch_y = batch_y.float()
         # print(batch_y)
         origin_y = batch_y[:, -self.args.pred_len:, :].detach()
-        print("001", origin_y.cuda()-batch_y)
+        print("001", origin_y.cuda()-batch_y[:, -self.args.pred_len:, :])
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
         # print(batch_y)
