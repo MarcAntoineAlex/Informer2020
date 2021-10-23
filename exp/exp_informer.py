@@ -301,6 +301,7 @@ class Exp_Informer(Exp_Basic):
         batch_y = batch_y.float()
         # print(batch_y)
         origin_y = batch_y[:, -self.args.pred_len:, :].detach()
+        print("001", origin_y.cuda()-batch_y)
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
         # print(batch_y)
