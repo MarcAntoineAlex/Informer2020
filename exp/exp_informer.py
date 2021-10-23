@@ -294,14 +294,16 @@ class Exp_Informer(Exp_Basic):
         return outputs, batch_y
 
     def _process_one_batch_origin(self, dataset_object, batch_x, batch_y, batch_x_mark, batch_y_mark):
-        y1 = batch_y[:, -self.args.pred_len, :]
+        y1 = batch_y[:, -self.args.pred_len, :].detach()
         batch_x = batch_x.float().to(self.device)
         mx = torch.cat([batch_x[:, 0, :].unsqueeze(1), batch_x[:, :-1, :]], dim=1)
         batch_x -= mx
         batch_y = batch_y.float()
+        print(batch_y)
         origin_y = batch_y.detach()
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
+        print(batch_y)
 
 
         batch_x_mark = batch_x_mark.float().to(self.device)
@@ -314,11 +316,12 @@ class Exp_Informer(Exp_Basic):
         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
         f_dim = -1 if self.args.features == 'MS' else 0
         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+        print(batch_y)
         with torch.no_grad():
             outputs[:, 0, :] = y1
             batch_y[:, 0, :] = y1
             for i in range(1, self.args.pred_len):
                 outputs[:, i, :] += outputs[:, i-1, :]
                 batch_y[:, i, :] += batch_y[:, i - 1, :]
-        print(batch_y-origin_y[:, -self.args.pred_len:, f_dim:].to(self.device))
+        print(batch_y)
         return outputs, batch_y
