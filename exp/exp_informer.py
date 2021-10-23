@@ -302,10 +302,8 @@ class Exp_Informer(Exp_Basic):
         batch_y = batch_y.float()
         # print(batch_y)
         origin_y = batch_y[:, -self.args.pred_len:, :].detach()
-        print("001", origin_y-batch_y[:, -self.args.pred_len:, :])
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
         batch_y -= my
-        origin_my = batch_y[:, -self.args.pred_len:, :].detach()
         # print(batch_y)
 
 
@@ -319,7 +317,7 @@ class Exp_Informer(Exp_Basic):
         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
         f_dim = -1 if self.args.features == 'MS' else 0
         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-        print("002", batch_y-origin_my.cuda())
+        print(batch_y, y1)
         # print(batch_y)
         with torch.no_grad():
             outputs[:, 0, :] = y1
@@ -328,5 +326,4 @@ class Exp_Informer(Exp_Basic):
                 outputs[:, i, :] += outputs[:, i-1, :]
                 batch_y[:, i, :] += batch_y[:, i - 1, :]
         print(origin_y, batch_y)
-        print(origin_y.cuda()-batch_y)
         return outputs, batch_y
