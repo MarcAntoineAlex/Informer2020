@@ -303,9 +303,7 @@ class Exp_Informer(Exp_Basic):
         # print(batch_y)
         origin_y = torch.tensor(batch_y[:, -self.args.pred_len:, :])
         my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
-        print("002", batch_y)
         batch_y -= my
-        print("001", batch_y)
 
 
         batch_x_mark = batch_x_mark.float().to(self.device)
@@ -318,7 +316,6 @@ class Exp_Informer(Exp_Basic):
         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
         f_dim = -1 if self.args.features == 'MS' else 0
         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-        print(batch_y, y1)
         # print(batch_y)
         with torch.no_grad():
             outputs[:, 0, :] = y1
