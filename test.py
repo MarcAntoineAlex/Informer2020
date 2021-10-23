@@ -6,11 +6,17 @@ import matplotlib.pyplot as plt
 from data.data_loader import Dataset_ETT_hour
 import time
 
-a = torch.ones(3, 4, 5)
-b = torch.zeros(3, 4, 5)
-a[:, 1, :] += a[:, 0, :]
-a[:, 2, :] = a[:, 1, :]
-print(a)
+batch_y = torch.randn(3, 4, 5)
+origin_y = batch_y[:, -2:, :].detach()
+y1 = batch_y[:, -2, :].detach()
+my = torch.cat([batch_y[:, 0, :].unsqueeze(1), batch_y[:, :-1, :]], dim=1)
+batch_y -= my
+
+batch_y = batch_y[:, -2:, :]
+batch_y[:, 0, :] = y1
+for i in range(1, 2):
+    batch_y[:, i, :] += batch_y[:, i - 1, :]
+print(origin_y-batch_y)
 # data_set = Dataset_ETT_hour(
 #             root_path="/Users/marc-antoine/Documents/Github/ETDataset/ETT-small",
 #             data_path='ETTh1.csv',

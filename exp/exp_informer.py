@@ -325,5 +325,6 @@ class Exp_Informer(Exp_Basic):
             for i in range(1, self.args.pred_len):
                 outputs[:, i, :] += outputs[:, i-1, :]
                 batch_y[:, i, :] += batch_y[:, i - 1, :]
+        print(origin_y, batch_y)
         print(origin_y.cuda()-batch_y)
         return outputs, batch_y
